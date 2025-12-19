@@ -1,78 +1,46 @@
-<template>
-  <div>
-    <h2>글 작성</h2>
-
-    <form class="form" @submit.prevent="save">
-      <label>제목</label>
-      <input v-model="title" placeholder="제목을 입력하세요" />
-
-      <label>내용</label>
-      <textarea v-model="content" rows="6" placeholder="내용을 입력하세요"></textarea>
-
-      <button class="btn primary" type="submit">등록</button>
-      <button class="btn" type="button" @click="$router.push('/community')">취소</button>
-    </form>
-  </div>
-</template>
-
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { reviewsApi } from '@/api/reviews'
 
+const route = useRoute()
 const router = useRouter()
-const title = ref('')
+
+const movieId = computed(() => Number(route.params.movieId))
 const content = ref('')
+const rating = ref(5)
+const saving = ref(false)
 
-const LS_POSTS = 'moviemate_posts_v1'
-
-function loadPosts() {
+async function submit() {
+  if (!content.value.trim()) return alert('내용을 입력해줘!')
+  saving.value = true
   try {
-    return JSON.parse(localStorage.getItem(LS_POSTS)) ?? []
-  } catch {
-    return []
+    await reviewsApi.createByMovie(movieId.value, {
+      content: content.value,
+      rating: Number(rating.value),
+    })
+    router.push({ name: 'community', params: { movieId: movieId.value } })
+  } catch (e) {
+    console.error(e)
+    alert('리뷰 작성 실패 (로그인/권한이 필요할 수 있어)')
+  } finally {
+    saving.value = false
   }
-}
-
-function save() {
-  const t = title.value.trim()
-  const c = content.value.trim()
-  if (!t || !c) return alert('제목/내용을 입력하세요.')
-
-  const posts = loadPosts()
-  const newPost = {
-    id: (posts[0]?.id ?? 0) + 1,
-    title: t,
-    content: c,
-    createdAt: new Date().toLocaleString(),
-  }
-  localStorage.setItem(LS_POSTS, JSON.stringify([newPost, ...posts]))
-  router.push('/community')
 }
 </script>
 
-<style scoped>
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 520px;
-}
-input,
-textarea {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-}
-.btn {
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.btn.primary {
-  background: #111;
-  color: white;
-  border-color: #111;
-}
-</style>
+<template>
+  <div>
+    <h2>리뷰 작성 (movie_id: {{ movieId }})</h2>
+
+    <textarea v-model="content" placeholder="리뷰 내용" style="width:100%; min-height:140px; padding:10px;"></textarea>
+
+    <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+      <label>평점</label>
+      <input v-model="rating" type="number" min="1" max="10" style="width:80px; padding:8px;" />
+      <button @click="submit" :disabled="saving" style="padding:10px 14px; cursor:pointer;">
+        {{ saving ? '저장 중...' : '작성' }}
+      </button>
+    </div>
+  </div>
+</template>
