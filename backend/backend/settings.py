@@ -20,10 +20,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-mtlv3h@)lra82(-&+h9mmo+88)q@$zqral07-eyt3vr(vpx++v'
+# SECURITY WARNING: keep the secret key used in production secret!
+# SECRET_KEY and DEBUG settings are moved to the bottom to use environment variables
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -31,17 +30,30 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'corsheaders',
-    'rest_framework',
-    'accounts',
-    'movies',
-    'reviews',
+    # Django Apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+
+    # Third Party Apps
+    'corsheaders',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+
+    # Local Apps
+    'accounts',
+    'movies',
+    'reviews',
+    'data',
 ]
 
 MIDDLEWARE = [
@@ -53,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -135,12 +148,30 @@ import os
 
 load_dotenv()
 
-SECRET_KEY = os.getenv('SECRET_KEY')
+# Security
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
+DEBUG = True # 개발 중에는 True, 배포 시에는 반드시 False로 변경 필요
 
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
+GMS_KEY = os.getenv('GMS_KEY')
 
-# settings.py
-INSTALLED_APPS += ['data']
+AUTH_USER_MODEL = 'accounts.User'
+
+# DRF Settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+
+# AllAuth Settings
+SITE_ID = 1
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'username'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
 
 # CORS 설정
 CORS_ALLOWED_ORIGINS = [

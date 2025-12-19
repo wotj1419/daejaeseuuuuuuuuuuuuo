@@ -5,7 +5,7 @@ from django.db.models import Avg, Count
 from django.conf import settings
 import requests
 
-from .models import Movie
+from .models import Movie, Genre
 from .serializers import (
     MovieListSerializer,
     MovieDetailSerializer,
@@ -28,27 +28,99 @@ class MovieListAPIView(APIView):
 
 
 class MovieDetailAPIView(APIView):
-    def get(self, request, pk):
-        movie = get_object_or_404(
-            Movie.objects.annotate(
-                avg_rating=Avg('reviews__rating'),
-                review_count=Count('reviews')
-            ),
-            pk=pk
-        )
-        serializer = MovieDetailSerializer(movie)
-        return Response(serializer.data)
+    def get_movie_from_tmdb(self, tmdb_id):
+        tmdb_api_key = settings.TMDB_API_KEY
+        url = f"https://api.themoviedb.org/3/movie/{tmdb_id}"
+        params = {
+            'api_key': tmdb_api_key,
+            'language': 'ko-KR',
+        }
+        try:
+            response = requests.get(url, params=params, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                
+                # 장르 처리
+                genres = []
+                if 'genres' in data:
+                    for g in data['genres']:
+                         genre, created = Genre.objects.get_or_create(
+                             name=g['name']
+                        )
+                         genres.append(genre)
+
+                # 영화 저장 (tmdb_id로 저장)
+                movie, created = Movie.objects.get_or_create(
+                    tmdb_id=data['id'],
+                    defaults={
+                        'title': data['title'],
+                        'original_title': data.get('original_title', ''),
+                        'overview': data.get('overview', ''),
+                        'release_date': data.get('release_date') or None,
+                        'poster_path': data.get('poster_path', ''),
+                        'backdrop_path': data.get('backdrop_path', ''),
+                        'vote_average': data.get('vote_average', 0),
+                        'popularity': data.get('popularity', 0),
+                    }
+                )
+                
+                if created:
+                     movie.genres.set(genres)
+                
+                return movie
+        except Exception as e:
+            print(f"Error fetching from TMDB: {e}")
+            return None
+        return None
+
+    def get(self, request, movie_id):
+        try:
+            # 1. DB에서 tmdb_id로 찾기
+            try:
+                movie = Movie.objects.annotate(
+                    avg_rating=Avg('reviews__rating'),
+                    review_count=Count('reviews')
+                ).get(tmdb_id=movie_id)
+            except Movie.DoesNotExist:
+                # 1.5 Legacy Fallback: 내부 ID로 한번 더 찾아보기 (기존 URL 호환성)
+                try:
+                    movie = Movie.objects.annotate(
+                        avg_rating=Avg('reviews__rating'),
+                        review_count=Count('reviews')
+                    ).get(id=movie_id)
+                except Movie.DoesNotExist:
+                    # 2. DB에 없으면 TMDB에서 가져오기
+                    movie = self.get_movie_from_tmdb(movie_id)
+                    if not movie:
+                         return Response({'error': '영화를 찾을 수 없습니다.'}, status=404)
+                    
+                    # Annotate 된 필드가 없으므로 수동으로 추가
+                    movie.avg_rating = 0.0
+                    movie.review_count = 0
+
+            serializer = MovieDetailSerializer(movie)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'error': str(e)}, status=500)
 
 
 class MovieRecommendAPIView(APIView):
     def get(self, request, movie_id):
-        movie = get_object_or_404(Movie, id=movie_id)
+        # movie_id는 이제 TMDB ID로 간주됨
+        try:
+            movie = Movie.objects.get(tmdb_id=movie_id)
+        except Movie.DoesNotExist:
+             return Response({'error': '영화를 찾을 수 없습니다.'}, status=404)
+
         genres = movie.genres.all()
 
         movies = (
             Movie.objects
             .filter(genres__in=genres)
-            .exclude(id=movie.id)
+            .exclude(tmdb_id=movie_id) # tmdb_id로 제외
             .distinct()
             .order_by('-vote_average', '-popularity')[:10]
         )
@@ -114,13 +186,13 @@ class MovieSearchAPIView(APIView):
 
 class MovieTrailerAPIView(APIView):
     def get(self, request, movie_id):
-        movie = get_object_or_404(Movie, id=movie_id)
+        # movie_id는 이제 TMDB ID
+        # DB에 영화가 없을 수도 있으니(상세페이지 갔다가 바로 예고편 로딩 시), 예고편은 TMDB API 바로 호출 가능
+        # 하지만 기존 로직 유지해서 DB 조회 후 없으면 404
         
-        # TMDB API를 호출하기 위해 tmdb_id 사용
-        tmdb_id = movie.tmdb_id
-        if not tmdb_id:
-            return Response({"trailer": None, "error": "TMDB ID가 없습니다."}, status=404)
-
+        # TMDB ID 자체를 그냥 써도 됨 (반드시 우리 DB에 있어야 하는 건 아님)
+        tmdb_id = movie_id
+        
         api_key = settings.TMDB_API_KEY
         if not api_key:
             return Response({"error": "TMDB API 키가 설정되지 않았습니다."}, status=500)
@@ -133,6 +205,9 @@ class MovieTrailerAPIView(APIView):
 
         try:
             response = requests.get(url, params=params, timeout=10)
+            if response.status_code == 404:
+                 return Response({"trailer": None}, status=404)
+                 
             response.raise_for_status()
             data = response.json()
 

@@ -1,6 +1,11 @@
 import http from './http'
 
 export const moviesApi = {
+  // AI 영화 추천
+  aiRecommend(query) {
+    return http.post('/movies/ai-recommend/', { query })
+  },
+
   // ✅ 너 백엔드에 영화목록 API가 있다면 이걸 사용
   list(params = {}) {
     return http.get('/movies/', { params })

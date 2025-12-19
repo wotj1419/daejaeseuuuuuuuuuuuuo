@@ -9,6 +9,8 @@ const loading = ref(false)
 const error = ref(null)
 const searchResults = ref([])
 const totalResults = ref(0)
+const isAiMode = ref(false)
+const aiResult = ref('')
 
 // TMDB poster_path가 상대경로일 때 보정
 function posterUrl(poster_path) {
@@ -29,17 +31,34 @@ async function searchMovies() {
   searchResults.value = []
 
   try {
-    const { data } = await moviesApi.search(query)
-    searchResults.value = data.results || []
-    totalResults.value = data.total_results || 0
-    
-    if (searchResults.value.length === 0) {
-      error.value = '검색 결과가 없습니다.'
+    if (isAiMode.value) {
+      const { data } = await moviesApi.aiRecommend(query)
+      aiResult.value = data.result
+      
+      // AI가 추천해준 영화 목록을 결과에 표시
+      if (data.movies && data.movies.length > 0) {
+        searchResults.value = data.movies
+      } else {
+        searchResults.value = []
+      }
+      totalResults.value = searchResults.value.length
+    } else {
+      const { data } = await moviesApi.search(query)
+      searchResults.value = data.results || []
+      totalResults.value = data.total_results || 0
+      aiResult.value = ''
+      
+      if (searchResults.value.length === 0) {
+        error.value = '검색 결과가 없습니다.'
+      }
     }
   } catch (e) {
     console.error(e)
-    error.value = '영화 검색 중 오류가 발생했습니다.'
+    error.value = isAiMode.value 
+      ? 'AI 추천 중 오류가 발생했습니다.' 
+      : '영화 검색 중 오류가 발생했습니다.'
     searchResults.value = []
+    aiResult.value = ''
   } finally {
     loading.value = false
   }
@@ -64,7 +83,7 @@ function goToMovieDetail(tmdbId) {
         <input 
           v-model="searchQuery" 
           @keyup.enter="searchMovies"
-          placeholder="예: 액션 영화 추천해줘, 로맨스 영화, 공포 영화 등" 
+          :placeholder="isAiMode ? 'AI에게 기분이나 상황을 말해보세요' : '예: 액션 영화, 로맨스 영화 등'" 
           class="search-input"
         />
         <button @click="searchMovies" :disabled="loading" class="search-button">
@@ -73,7 +92,21 @@ function goToMovieDetail(tmdbId) {
       </div>
     </div>
 
+    <div class="mode-toggle">
+      <label class="switch">
+        <input type="checkbox" v-model="isAiMode">
+        <span class="slider round"></span>
+      </label>
+      <span class="mode-label">{{ isAiMode ? '🤖 AI 추천 모드 ON' : '🔍 일반 검색 모드' }}</span>
+    </div>
+
     <div v-if="error" class="error-message">{{ error }}</div>
+    
+    <!-- AI 결과 표시 -->
+    <div v-if="aiResult" class="ai-result-box">
+      <h3>🤖 AI의 추천</h3>
+      <div class="ai-content">{{ aiResult }}</div>
+    </div>
     
     <div v-if="totalResults > 0" class="results-info">
       총 {{ totalResults }}개의 영화를 찾았습니다.
@@ -255,5 +288,94 @@ function goToMovieDetail(tmdbId) {
   color: #999;
   font-size: 12px;
   margin-top: 8px;
+}
+</style>
+
+<style scoped>
+/* Toggle Switch Styles */
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.mode-label {
+  font-weight: bold;
+  color: #333;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.ai-result-box {
+  background: #e3f2fd;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid #bbdefb;
+}
+
+.ai-result-box h3 {
+  margin-top: 0;
+  color: #1565c0;
+}
+
+.ai-content {
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: #333;
 }
 </style>
