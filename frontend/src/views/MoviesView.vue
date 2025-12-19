@@ -80,8 +80,8 @@ onMounted(loadMovies)
 
         <!-- 너 기존 구조로 연결(원하면) -->
         <div class="actions">
-          <RouterLink :to="{ name: 'movieDetail', params: { movieId: m.id } }">허브</RouterLink>
-          <RouterLink :to="{ name: 'community', params: { movieId: m.id } }">리뷰</RouterLink>
+          <RouterLink :to="{ name: 'movieDetail', params: { movieId: m.tmdb_id } }">허브</RouterLink>
+          <RouterLink :to="{ name: 'community', params: { movieId: m.tmdb_id } }">리뷰</RouterLink>
         </div>
       </div>
     </div>

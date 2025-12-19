@@ -9,6 +9,7 @@ class MovieListSerializer(serializers.ModelSerializer):
         model = Movie
         fields = (
             'id',
+            'tmdb_id',
             'title',
             'poster_path',
             'vote_average',
@@ -28,6 +29,7 @@ class MovieDetailSerializer(serializers.ModelSerializer):
         model = Movie
         fields = (
             'id',
+            'tmdb_id',
             'title',
             'original_title',
             'overview',
@@ -45,6 +47,7 @@ class MovieRecommendSerializer(serializers.ModelSerializer):
         model = Movie
         fields = (
             'id',
+            'tmdb_id',
             'title',
             'poster_path',
             'vote_average',

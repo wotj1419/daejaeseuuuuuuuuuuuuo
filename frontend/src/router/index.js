@@ -31,6 +31,10 @@ const router = createRouter({
 
     { path: '/profile', name: 'profile', component: ProfileView },
 
+    // Auth
+    { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
+    { path: '/signup', name: 'signup', component: () => import('@/views/SignUpView.vue') },
+
     { path: '/:pathMatch(.*)*', name: 'notFound', component: NotFoundView },
   ],
 })
