@@ -4,6 +4,7 @@ from .views import (
     MovieDetailAPIView,
     MovieRecommendAPIView,
     MovieSearchAPIView,
+    MovieTrailerAPIView,
 )
 
 urlpatterns = [
@@ -11,4 +12,5 @@ urlpatterns = [
     path('movies/<int:pk>/', MovieDetailAPIView.as_view()),
     path('movies/<int:movie_id>/recommend/', MovieRecommendAPIView.as_view()),
     path('movies/search/', MovieSearchAPIView.as_view()),
+    path('movies/<int:movie_id>/trailer/', MovieTrailerAPIView.as_view()),
 ]

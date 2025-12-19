@@ -110,3 +110,33 @@ class MovieSearchAPIView(APIView):
                 'error': 'TMDB API 호출 중 오류가 발생했습니다.',
                 'detail': str(e)
             }, status=500)
+
+
+class MovieTrailerAPIView(APIView):
+    def get(self, request, movie_id):
+        movie = get_object_or_404(Movie, id=movie_id)
+
+        url = f"https://api.themoviedb.org/3/movie/{movie_id}/videos"
+        params = {
+            "api_key": settings.TMDB_API_KEY,
+            "language": "ko-KR",
+        }
+
+        response = requests.get(url, params=params)
+        data = response.json()
+
+        # YouTube Trailer만 필터링
+        trailers = [
+            video for video in data.get("results", [])
+            if video["site"] == "YouTube" and video["type"] == "Trailer"
+        ]
+
+        if not trailers:
+            return Response({"trailer": None})
+
+        youtube_key = trailers[0]["key"]
+        youtube_url = f"https://www.youtube.com/embed/{youtube_key}"
+
+        return Response({
+            "trailer": youtube_url
+        })
