@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 
 class ReviewListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]  # 🔥 전부 허용
 
     def get_queryset(self):
         movie_id = self.kwargs['movie_id']
@@ -16,25 +16,19 @@ class ReviewListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         movie = get_object_or_404(Movie, id=self.kwargs['movie_id'])
-        serializer.save(
-            user=self.request.user,
-            movie=movie
-        )
-
+        serializer.save(movie=movie)  # 🔥 user 안 넣음
 
 class ReviewDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]  # 🔥 전부 허용
 
     def get_queryset(self):
         return Review.objects.all()
 
+    # 🔥 수정 제한 없음
     def perform_update(self, serializer):
-        if self.request.user != serializer.instance.user:
-            raise PermissionDenied("수정 권한이 없습니다.")
         serializer.save()
 
+    # 🔥 삭제 제한 없음
     def perform_destroy(self, instance):
-        if self.request.user != instance.user:
-            raise PermissionDenied("삭제 권한이 없습니다.")
         instance.delete()

@@ -10,7 +10,11 @@ class Review(models.Model):
         Movie, on_delete=models.CASCADE, related_name='reviews'
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='reviews'
+        User,
+        on_delete=models.SET_NULL,   # 🔥 핵심
+        null=True,                   # 🔥 익명 허용
+        blank=True,
+        related_name='reviews'
     )
     content = models.TextField()
     rating = models.IntegerField()  # 1~5
@@ -18,7 +22,11 @@ class Review(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('movie', 'user')  # 한 영화에 리뷰 1개
+        # 🔥 익명 리뷰 허용하므로 제거
+        # unique_together = ('movie', 'user')
+        pass
 
     def __str__(self):
-        return f"{self.movie.title} - {self.user}"
+        if self.user:
+            return f"{self.movie.title} - {self.user}"
+        return f"{self.movie.title} - 익명"
