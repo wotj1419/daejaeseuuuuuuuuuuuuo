@@ -115,28 +115,44 @@ class MovieSearchAPIView(APIView):
 class MovieTrailerAPIView(APIView):
     def get(self, request, movie_id):
         movie = get_object_or_404(Movie, id=movie_id)
+        
+        # TMDB API를 호출하기 위해 tmdb_id 사용
+        tmdb_id = movie.tmdb_id
+        if not tmdb_id:
+            return Response({"trailer": None, "error": "TMDB ID가 없습니다."}, status=404)
 
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}/videos"
+        api_key = settings.TMDB_API_KEY
+        if not api_key:
+            return Response({"error": "TMDB API 키가 설정되지 않았습니다."}, status=500)
+
+        url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos"
         params = {
-            "api_key": settings.TMDB_API_KEY,
+            "api_key": api_key,
             "language": "ko-KR",
         }
 
-        response = requests.get(url, params=params)
-        data = response.json()
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
 
-        # YouTube Trailer만 필터링
-        trailers = [
-            video for video in data.get("results", [])
-            if video["site"] == "YouTube" and video["type"] == "Trailer"
-        ]
+            # YouTube Trailer만 필터링
+            trailers = [
+                video for video in data.get("results", [])
+                if video.get("site") == "YouTube" and video.get("type") == "Trailer"
+            ]
 
-        if not trailers:
-            return Response({"trailer": None})
+            if not trailers:
+                return Response({"trailer": None})
 
-        youtube_key = trailers[0]["key"]
-        youtube_url = f"https://www.youtube.com/embed/{youtube_key}"
+            youtube_key = trailers[0]["key"]
+            youtube_url = f"https://www.youtube.com/embed/{youtube_key}"
 
-        return Response({
-            "trailer": youtube_url
-        })
+            return Response({
+                "trailer": youtube_url
+            })
+        except requests.exceptions.RequestException as e:
+            return Response({
+                "error": "TMDB API 호출 중 오류가 발생했습니다.",
+                "detail": str(e)
+            }, status=500)

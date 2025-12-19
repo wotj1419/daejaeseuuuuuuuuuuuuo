@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRecommendationStore } from '@/stores/recommendation'
-import axios from 'axios'
+import { moviesApi } from '@/api/movies'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,9 +14,30 @@ const movieId = computed(() => Number(route.params.movieId))
 // trailer
 const trailerUrl = ref(null)
 const trailerError = ref(null)
+const trailerLoading = ref(false)
 
 function goCommunity() {
   router.push({ name: 'community', params: { movieId: movieId.value } })
+}
+
+async function loadTrailer() {
+  trailerLoading.value = true
+  trailerError.value = null
+  trailerUrl.value = null
+  
+  try {
+    const { data } = await moviesApi.trailer(movieId.value)
+    if (data.trailer) {
+      trailerUrl.value = data.trailer
+    } else {
+      trailerError.value = '예고편이 없습니다.'
+    }
+  } catch (err) {
+    console.error('예고편 로딩 오류:', err)
+    trailerError.value = '예고편을 불러오지 못했습니다.'
+  } finally {
+    trailerLoading.value = false
+  }
 }
 
 onMounted(async () => {
@@ -24,14 +45,7 @@ onMounted(async () => {
   store.fetchRecommend(movieId.value)
 
   // 예고편(F)
-  try {
-    const res = await axios.get(
-      `http://localhost:8000/api/movies/${movieId.value}/trailer/`
-    )
-    trailerUrl.value = res.data.trailer
-  } catch (err) {
-    trailerError.value = '예고편을 불러오지 못했습니다.'
-  }
+  await loadTrailer()
 })
 </script>
 
@@ -58,18 +72,29 @@ onMounted(async () => {
     <section style="margin:24px 0;">
       <h3>🎬 예고편</h3>
 
-      <iframe
-        v-if="trailerUrl"
-        :src="trailerUrl"
-        width="100%"
-        height="420"
-        frameborder="0"
-        allowfullscreen
-        style="border-radius:12px; background:#000;"
-      />
+      <div v-if="trailerLoading" style="text-align:center; padding:40px; color:#666;">
+        예고편을 불러오는 중...
+      </div>
 
-      <p v-else-if="trailerError">{{ trailerError }}</p>
-      <p v-else>예고편이 없습니다.</p>
+      <div v-else-if="trailerUrl" class="trailer-container">
+        <iframe
+          :src="trailerUrl"
+          width="100%"
+          height="420"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          class="trailer-iframe"
+        />
+      </div>
+
+      <div v-else-if="trailerError" class="trailer-error">
+        {{ trailerError }}
+      </div>
+
+      <div v-else class="trailer-error">
+        예고편이 없습니다.
+      </div>
     </section>
 
     <!-- ⭐ 추천 영화 -->
@@ -102,3 +127,32 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.trailer-container {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.trailer-iframe {
+  width: 100%;
+  height: 420px;
+  border: none;
+  border-radius: 12px;
+  background: #000;
+}
+
+.trailer-error {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+</style>

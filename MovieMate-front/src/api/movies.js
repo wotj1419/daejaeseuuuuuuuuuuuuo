@@ -20,4 +20,9 @@ export const moviesApi = {
   search(query) {
     return http.get('/movies/search/', { params: { q: query } })
   },
+
+  // 예고편 API
+  trailer(movieId) {
+    return http.get(`/movies/${movieId}/trailer/`)
+  },
 }
