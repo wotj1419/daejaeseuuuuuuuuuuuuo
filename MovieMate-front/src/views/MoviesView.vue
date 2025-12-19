@@ -50,13 +50,13 @@ onMounted(loadMovies)
   <div>
     <h2>영화 목록</h2>
     <p style="color:#666;">
-      로그인 없이 백엔드(TMDB 연동)에서 내려주는 영화 데이터를 사용합니다.
+      
     </p>
 
     <div class="search">
       <input v-model="q" placeholder="제목/줄거리로 검색" />
-      <span class="count">{{ movies.length }}개</span>
-      <button @click="loadMovies">새로고침</button>
+    
+ 
     </div>
 
     <p v-if="loading">불러오는 중...</p>
@@ -80,7 +80,7 @@ onMounted(loadMovies)
 
         <!-- 너 기존 구조로 연결(원하면) -->
         <div class="actions">
-          <RouterLink :to="{ name: 'movieDetail', params: { movieId: m.id } }">허브</RouterLink>
+          <RouterLink :to="{ name: 'movieDetail', params: { movieId: m.id } }">상세 정보</RouterLink>
           <RouterLink :to="{ name: 'community', params: { movieId: m.id } }">리뷰</RouterLink>
         </div>
       </div>
