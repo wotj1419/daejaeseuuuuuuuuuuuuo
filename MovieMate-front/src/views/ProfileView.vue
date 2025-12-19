@@ -37,10 +37,7 @@ const displayName = computed(() => (nickname.value?.trim() ? nickname.value : 'G
 <template>
   <div>
     <h2>프로필</h2>
-    <p style="color:#555;">
-      (현재 accounts API가 연결되지 않아 로컬스토리지 기반으로 구성했어요. 추후 백엔드 프로필 API 연결 가능)
-    </p>
-
+   
     <section class="card">
       <h3>기본 정보</h3>
 
