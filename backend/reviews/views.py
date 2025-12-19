@@ -1,8 +1,10 @@
 from rest_framework import generics, permissions
+from rest_framework.exceptions import PermissionDenied
 from .models import Review
 from .serializers import ReviewSerializer
 from movies.models import Movie
 from django.shortcuts import get_object_or_404
+
 
 class ReviewListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ReviewSerializer
@@ -29,10 +31,10 @@ class ReviewDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         if self.request.user != serializer.instance.user:
-            raise PermissionError("수정 권한 없음")
+            raise PermissionDenied("수정 권한이 없습니다.")
         serializer.save()
 
     def perform_destroy(self, instance):
         if self.request.user != instance.user:
-            raise PermissionError("삭제 권한 없음")
+            raise PermissionDenied("삭제 권한이 없습니다.")
         instance.delete()
