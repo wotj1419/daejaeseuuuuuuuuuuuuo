@@ -29,6 +29,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
+
 ### 3. Frontend Setup (프론트엔드 설정)
 
 ```bash
