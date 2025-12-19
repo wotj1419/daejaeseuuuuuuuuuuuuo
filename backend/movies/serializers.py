@@ -12,6 +12,8 @@ class MovieListSerializer(serializers.ModelSerializer):
             'title',
             'poster_path',
             'vote_average',
+            'popularity',
+            'overview',
             'avg_rating',
             'review_count',
         )

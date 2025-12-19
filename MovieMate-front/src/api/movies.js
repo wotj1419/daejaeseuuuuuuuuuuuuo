@@ -15,4 +15,9 @@ export const moviesApi = {
   recommend(movieId) {
     return http.get(`/movies/${movieId}/recommend/`)
   },
+
+  // 검색 API
+  search(query) {
+    return http.get('/movies/search/', { params: { q: query } })
+  },
 }
