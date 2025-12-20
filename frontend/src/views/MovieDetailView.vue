@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRecommendationStore } from '@/stores/recommendation'
 import { moviesApi } from '@/api/movies'
@@ -64,15 +64,19 @@ function posterUrl(path) {
   return `https://image.tmdb.org/t/p/w500${path}`
 }
 
-onMounted(async () => {
-  await loadMovieDetail()
-  
-  // 영화 정보가 있으면 추천 영화 및 예고편 로딩
-  if (movie.value) {
-    store.fetchRecommend(movieId.value)
-    await loadTrailer()
+// movieId가 바뀔 때마다(추천 영화 클릭 시 등) 데이터를 새로 불러옴
+watch(movieId, async (newId) => {
+  if (newId) {
+    // 페이지 최상단으로 즉시 이동 (이질감 제거)
+    window.scrollTo(0, 0)
+    
+    await loadMovieDetail()
+    if (movie.value) {
+      store.fetchRecommend(newId)
+      await loadTrailer()
+    }
   }
-})
+}, { immediate: true })
 </script>
 
 <template>
@@ -143,62 +147,82 @@ onMounted(async () => {
       </section>
     </div>
 
-    <!-- ⭐ 추천 영화 -->
-    <h3>추천 영화</h3>
-    <p v-if="store.loading">불러오는 중...</p>
-    <p v-if="store.error">{{ store.error }}</p>
+      <!-- ⭐ 추천 영화 -->
+      <section class="recommend-section">
+        <h3 class="section-title">비슷한 분위기의 추천 영화</h3>
+        <p v-if="store.loading" class="loading-small">추천 영화를 찾는 중...</p>
+        <p v-if="store.error" class="error-small">{{ store.error }}</p>
 
-    <div
-      v-if="store.items.length"
-      style="display:grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap:12px; margin-top:12px;"
-    >
-      <div
-        v-for="m in store.items"
-        :key="m.id"
-        class="recommend-card"
-        @click="router.push({ name: 'movieDetail', params: { movieId: m.tmdb_id } })"
-      >
-        <img
-          v-if="m.poster_path"
-          :src="m.poster_path"
-          alt="poster"
-          style="width:100%; height:260px; object-fit:cover; border-radius:10px; background:#f4f4f4;"
-        />
-        <div style="margin-top:10px; font-weight:700;">
-          {{ m.title }}
+        <div v-if="store.items.length" class="recommend-grid">
+          <div
+            v-for="m in store.items"
+            :key="m.id"
+            class="recommend-card"
+            @click="router.push({ name: 'movieDetail', params: { movieId: m.tmdb_id } })"
+          >
+            <div class="recommend-poster">
+              <img
+                v-if="m.poster_path"
+                :src="posterUrl(m.poster_path)"
+                alt="poster"
+              />
+              <div v-else class="no-poster-small">No Image</div>
+            </div>
+            <div class="recommend-info">
+              <div class="recommend-title">{{ m.title }}</div>
+              <div class="recommend-meta">
+                <span class="rating">⭐ {{ m.vote_average?.toFixed(1) }}</span>
+                <span class="popularity">🔥 {{ Math.round(m.popularity) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div style="margin-top:6px; color:#555; font-size:14px;">
-          ⭐ {{ m.vote_average }} · 🔥 {{ m.popularity }}
-        </div>
-      </div>
+      </section>
     </div>
-  </div>
 </template>
 
 <style scoped>
 .movie-detail {
-  padding: 20px 0;
+  padding: 40px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .header {
-  margin-bottom: 30px;
+  margin-bottom: 40px;
+  border-bottom: 1px solid #222;
+  padding-bottom: 20px;
+}
+
+.header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: #ffffff;
 }
 
 .en-title {
   color: #888;
   font-size: 1.2rem;
+  font-weight: 400;
 }
 
 .info-section {
   display: flex;
-  gap: 30px;
+  gap: 50px;
   flex-wrap: wrap;
+  margin-bottom: 60px;
+}
+
+.poster-wrapper {
+  flex-shrink: 0;
 }
 
 .big-poster {
-  width: 300px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  width: 350px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .text-info {
@@ -208,80 +232,168 @@ onMounted(async () => {
 
 .meta-row {
   display: flex;
-  gap: 15px;
-  font-size: 1.1rem;
-  margin-bottom: 15px;
-  color: #444;
+  gap: 20px;
+  font-size: 1.2rem;
+  margin-bottom: 25px;
+  color: #e5e5e5; /* 밝은 색으로 변경 */
 }
 
 .genres {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .genre-tag {
   display: inline-block;
-  background: #eee;
-  padding: 6px 12px;
-  border-radius: 20px;
-  margin-right: 8px;
-  font-size: 0.9rem;
-  color: #555;
+  background: rgba(255, 255, 255, 0.1); /* 어두운 배경에 맞는 태그 색상 */
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-right: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1ed760;
+  border: 1px solid rgba(30, 215, 96, 0.3);
 }
 
 .overview h3 {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+  color: #ffffff;
 }
 
 .overview p {
-  line-height: 1.6;
-  color: #333;
+  line-height: 1.8;
+  color: #cccccc; /* 기존보다 밝게 조정 */
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
 }
 
 .community-btn {
-  margin-top: 30px;
-  background-color: #ff4081;
+  margin-top: 40px;
+  background-color: #1db954;
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: bold;
+  padding: 16px 32px;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
 }
 
 .community-btn:hover {
-  background-color: #e91e63;
+  background-color: #1ed760;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(29, 185, 84, 0.5);
 }
 
-/* 기존 스타일 유지 */
+/* 예고편 섹션 */
 .trailer-container {
   position: relative;
   width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  border-radius: 12px;
+  max-width: 1000px;
+  margin: 30px 0;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.trailer-iframe {
-  width: 100%;
-  height: 420px;
-  border: none;
-  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   background: #000;
 }
 
-.recommend-card {
-  border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 10px;
-  cursor: pointer;
-  transition: transform 0.2s;
+.trailer-iframe {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+  border: none;
 }
+
+/* 추천 섹션 */
+.recommend-section {
+  margin-top: 80px;
+  padding-top: 40px;
+  border-top: 1px solid #222;
+}
+
+.section-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #ffffff;
+}
+
+.recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 25px;
+}
+
+.recommend-card {
+  background: #181818;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #282828;
+}
+
 .recommend-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-10px);
+  border-color: #1db954;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.recommend-poster {
+  width: 100%;
+  aspect-ratio: 2 / 3; /* 포스터 비율 유지 */
+  overflow: hidden;
+  background: #222;
+}
+
+.recommend-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 공간을 꽉 채우되 비율 유지 */
+  transition: transform 0.5s ease;
+}
+
+.recommend-card:hover .recommend-poster img {
+  transform: scale(1.1);
+}
+
+.recommend-info {
+  padding: 15px;
+}
+
+.recommend-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recommend-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.recommend-meta .rating {
+  color: #1db954;
+  font-weight: 600;
+}
+
+.loading { text-align: center; padding: 100px; font-size: 1.5rem; color: #1db954; }
+.error { text-align: center; padding: 100px; color: #ff4444; }
+.loading-small { color: #888; text-align: center; padding: 20px; }
+.error-small { color: #ff4444; text-align: center; padding: 20px; }
+.no-poster-small { height: 100%; display: flex; align-items: center; justify-content: center; color: #444; }
+
+@media (max-width: 768px) {
+  .big-poster { width: 100%; }
+  .header h1 { font-size: 2rem; }
+  .info-section { gap: 30px; }
 }
 </style>

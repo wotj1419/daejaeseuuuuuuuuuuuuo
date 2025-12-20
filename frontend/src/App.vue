@@ -7,7 +7,7 @@ const authStore = useAuthStore()
 
 <template>
   <header class="nav">
-    <div class="logo">MovieMate</div>
+    <RouterLink class="logo" to="/">MovieMate</RouterLink>
     <RouterLink class="link" to="/">홈</RouterLink>
     <RouterLink class="link" to="/movies">영화</RouterLink>
     
@@ -67,6 +67,7 @@ body {
   color: #1DB954;
   margin-right: 20px;
   letter-spacing: -0.5px;
+  text-decoration: none;
 }
 
 .auth-links {
