@@ -2,11 +2,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { moviesApi } from '@/api/movies'
+import { favoritesApi } from '@/api/favorites'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref(null)
 const allMovies = ref([])
+const favoriteStatus = ref(new Map()) // tmdb_id -> boolean
 
 const q = ref('')
 
@@ -49,7 +53,47 @@ function goToMovieDetail(tmdbId) {
   router.push({ name: 'movieDetail', params: { movieId: tmdbId } })
 }
 
-onMounted(loadMovies)
+// 좋아요 토글
+async function toggleFavorite(event, movieTmdbId) {
+  event.stopPropagation() // 영화 카드 클릭 방지
+  
+  if (!authStore.isAuthenticated) {
+    alert('로그인이 필요합니다.')
+    router.push({ name: 'login' })
+    return
+  }
+
+  try {
+    const { data } = await favoritesApi.toggleFavorite(movieTmdbId)
+    // 좋아요 상태 업데이트
+    favoriteStatus.value.set(movieTmdbId, data.is_favorited)
+  } catch (e) {
+    console.error('좋아요 토글 실패:', e)
+    alert('좋아요 처리 중 오류가 발생했습니다.')
+  }
+}
+
+// 좋아요 상태 로드
+async function loadFavoriteStatuses() {
+  if (!authStore.isAuthenticated) return
+
+  try {
+    const { data } = await favoritesApi.getMyMovies()
+    const favoriteIds = new Set(data.map(m => m.tmdb_id))
+    
+    // 현재 표시된 영화들의 좋아요 상태 설정
+    allMovies.value.forEach(movie => {
+      favoriteStatus.value.set(movie.tmdb_id, favoriteIds.has(movie.tmdb_id))
+    })
+  } catch (e) {
+    console.error('좋아요 상태 로드 실패:', e)
+  }
+}
+
+onMounted(async () => {
+  await loadMovies()
+  await loadFavoriteStatuses()
+})
 </script>
 
 <template>
@@ -100,6 +144,17 @@ onMounted(loadMovies)
           <div class="poster">
             <img v-if="m.poster_path" :src="posterUrl(m.poster_path)" alt="poster" />
             <div v-else class="noimg">No Image</div>
+            
+            <!-- 좋아요 버튼 -->
+            <button 
+              v-if="authStore.isAuthenticated"
+              class="favorite-btn"
+              :class="{ 'is-favorited': favoriteStatus.get(m.tmdb_id) }"
+              @click="toggleFavorite($event, m.tmdb_id)"
+            >
+              {{ favoriteStatus.get(m.tmdb_id) ? '⭐' : '☆' }}
+            </button>
+            
             <div class="card-overlay">
               <div class="play-button">▶</div>
             </div>
@@ -376,6 +431,39 @@ onMounted(loadMovies)
 .noimg {
   color: #666;
   font-size: 14px;
+}
+
+/* 좋아요 버튼 */
+.favorite-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+
+.favorite-btn:hover {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: #FFD700;
+  transform: scale(1.1);
+}
+
+.favorite-btn.is-favorited {
+  color: #FFD700;
+  border-color: #FFD700;
+  background: rgba(255, 215, 0, 0.15);
 }
 
 .movie-info {
