@@ -27,20 +27,277 @@ async function submit() {
     saving.value = false
   }
 }
+
+function cancel() {
+  router.push({ name: 'community', params: { movieId: movieId.value } })
+}
 </script>
 
 <template>
-  <div>
-    <h2>리뷰 작성 (movie_id: {{ movieId }})</h2>
+  <div class="create-container">
+    <div class="create-card">
+      <h1 class="page-title">✍️ 리뷰 작성</h1>
+      
+      <div class="form-section">
+        <div class="form-group">
+          <label class="form-label">리뷰 내용</label>
+          <textarea 
+            v-model="content" 
+            placeholder="영화에 대한 생각을 자유롭게 작성해주세요..."
+            class="review-textarea"
+          ></textarea>
+        </div>
 
-    <textarea v-model="content" placeholder="리뷰 내용" style="width:100%; min-height:140px; padding:10px;"></textarea>
+        <div class="form-group">
+          <label class="form-label">평점</label>
+          <div class="rating-container">
+            <input 
+              v-model="rating" 
+              type="number" 
+              min="1" 
+              max="10" 
+              class="rating-input"
+            />
+            <span class="rating-display">/ 10</span>
+            <div class="star-display">⭐ {{ rating }}</div>
+          </div>
+        </div>
 
-    <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-      <label>평점</label>
-      <input v-model="rating" type="number" min="1" max="10" style="width:80px; padding:8px;" />
-      <button @click="submit" :disabled="saving" style="padding:10px 14px; cursor:pointer;">
-        {{ saving ? '저장 중...' : '작성' }}
-      </button>
+        <div class="button-group">
+          <button 
+            @click="submit" 
+            :disabled="saving" 
+            class="submit-btn"
+          >
+            {{ saving ? '저장 중...' : '✨ 작성 완료' }}
+          </button>
+          <button 
+            @click="cancel" 
+            :disabled="saving"
+            class="cancel-btn"
+          >
+            취소
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.create-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #000000;
+  padding: 60px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.create-card {
+  width: 100%;
+  max-width: 800px;
+  background: #141414;
+  border: 1px solid #282828;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+.page-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 40px;
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #1DB954;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e5e5e5;
+  letter-spacing: -0.3px;
+}
+
+.review-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 16px;
+  color: #ffffff;
+  font-family: 'Noto Sans KR', sans-serif;
+  line-height: 1.6;
+  resize: vertical;
+  transition: all 0.3s ease;
+}
+
+.review-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.review-textarea:focus {
+  outline: none;
+  border-color: #1DB954;
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 20px rgba(29, 185, 84, 0.2);
+}
+
+.rating-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rating-input {
+  width: 100px;
+  padding: 14px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 18px;
+  color: #ffffff;
+  text-align: center;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.rating-input:focus {
+  outline: none;
+  border-color: #1DB954;
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 15px rgba(29, 185, 84, 0.2);
+}
+
+.rating-display {
+  font-size: 18px;
+  color: #888;
+  font-weight: 500;
+}
+
+.star-display {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #1DB954 0%, #169B43 100%);
+  color: #000000;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(29, 185, 84, 0.3);
+}
+
+.button-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 30px;
+  border-top: 1px solid #282828;
+}
+
+.submit-btn {
+  flex: 1;
+  padding: 16px 32px;
+  background-color: #1DB954;
+  color: #000000;
+  border: none;
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(29, 185, 84, 0.4);
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #1ed760;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(29, 185, 84, 0.6);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  padding: 16px 32px;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #e5e5e5;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.cancel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .create-container {
+    padding: 30px 15px;
+  }
+
+  .create-card {
+    padding: 24px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    margin-bottom: 30px;
+  }
+
+  .form-label {
+    font-size: 16px;
+  }
+
+  .review-textarea {
+    min-height: 160px;
+    font-size: 15px;
+  }
+
+  .rating-container {
+    flex-wrap: wrap;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .submit-btn,
+  .cancel-btn {
+    width: 100%;
+    font-size: 16px;
+  }
+}
+</style>

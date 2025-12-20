@@ -1,34 +1,65 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { moviesApi } from '@/api/movies'
 
 const router = useRouter()
 
 // 로컬 프로필(임시) - 백엔드 accounts API 붙이면 여기만 교체하면 됨
 const nickname = ref(localStorage.getItem('profile_nickname') || 'Guest')
 const bio = ref(localStorage.getItem('profile_bio') || '')
-const favoriteMovieId = ref(localStorage.getItem('profile_fav_movieId') || '')
+const favoriteMovieName = ref(localStorage.getItem('profile_fav_movieName') || '')
 
 const savedMessage = ref('')
+const searchLoading = ref(false)
 
 function saveProfile() {
   localStorage.setItem('profile_nickname', nickname.value)
   localStorage.setItem('profile_bio', bio.value)
-  localStorage.setItem('profile_fav_movieId', favoriteMovieId.value)
+  localStorage.setItem('profile_fav_movieName', favoriteMovieName.value)
   savedMessage.value = '저장 완료!'
   setTimeout(() => (savedMessage.value = ''), 1200)
 }
 
-function goFavMovie() {
-  const id = Number(favoriteMovieId.value)
-  if (!id) return alert('관심 movie_id를 숫자로 입력해줘!')
-  router.push({ name: 'movieDetail', params: { movieId: id } })
+// 영화 이름으로 검색하여 tmdb_id를 찾는 함수
+async function searchMovieByName(movieName) {
+  if (!movieName || !movieName.trim()) {
+    alert('관심 영화 이름을 입력해주세요!')
+    return null
+  }
+
+  try {
+    searchLoading.value = true
+    const { data } = await moviesApi.search(movieName.trim())
+    
+    if (data.results && data.results.length > 0) {
+      // 첫 번째 검색 결과 사용
+      return data.results[0].tmdb_id
+    } else {
+      alert(`"${movieName}" 영화를 찾을 수 없습니다. 다른 이름으로 시도해주세요.`)
+      return null
+    }
+  } catch (error) {
+    console.error('영화 검색 오류:', error)
+    alert('영화 검색 중 오류가 발생했습니다.')
+    return null
+  } finally {
+    searchLoading.value = false
+  }
 }
 
-function goFavCommunity() {
-  const id = Number(favoriteMovieId.value)
-  if (!id) return alert('관심 movie_id를 숫자로 입력해줘!')
-  router.push({ name: 'community', params: { movieId: id } })
+async function goFavMovie() {
+  const tmdbId = await searchMovieByName(favoriteMovieName.value)
+  if (tmdbId) {
+    router.push({ name: 'movieDetail', params: { movieId: tmdbId } })
+  }
+}
+
+async function goFavCommunity() {
+  const tmdbId = await searchMovieByName(favoriteMovieName.value)
+  if (tmdbId) {
+    router.push({ name: 'community', params: { movieId: tmdbId } })
+  }
 }
 
 const displayName = computed(() => (nickname.value?.trim() ? nickname.value : 'Guest'))
@@ -37,9 +68,7 @@ const displayName = computed(() => (nickname.value?.trim() ? nickname.value : 'G
 <template>
   <div>
     <h2>프로필</h2>
-    <p style="color:#555;">
-      (현재 accounts API가 연결되지 않아 로컬스토리지 기반으로 구성했어요. 추후 백엔드 프로필 API 연결 가능)
-    </p>
+    
 
     <section class="card">
       <h3>기본 정보</h3>
@@ -55,8 +84,11 @@ const displayName = computed(() => (nickname.value?.trim() ? nickname.value : 'G
       </div>
 
       <div class="row">
-        <label>관심 영화(movie_id)</label>
-        <input v-model="favoriteMovieId" placeholder="예: 1" />
+        <label>관심 영화 (영화 이름)</label>
+        <input v-model="favoriteMovieName" placeholder="예: 인터스텔라" />
+        <p style="font-size: 12px; color: #666; margin-top: 4px;">
+          영화의 한글 제목 또는 영문 제목을 입력하세요.
+        </p>
       </div>
 
       <div class="actions">
@@ -68,12 +100,16 @@ const displayName = computed(() => (nickname.value?.trim() ? nickname.value : 'G
     <section class="card">
       <h3>{{ displayName }}님의 바로가기</h3>
       <p style="color:#666; margin-top:6px;">
-        관심 영화 ID를 입력해두면, 추천/리뷰 페이지로 빠르게 이동할 수 있어요.
+        관심 영화 이름을 입력해두면, 추천/리뷰 페이지로 빠르게 이동할 수 있어요.
       </p>
 
       <div class="actions">
-        <button @click="goFavMovie">관심 영화 허브</button>
-        <button @click="goFavCommunity">관심 영화 커뮤니티</button>
+        <button @click="goFavMovie" :disabled="searchLoading">
+          {{ searchLoading ? '검색 중...' : '관심 영화 허브' }}
+        </button>
+        <button @click="goFavCommunity" :disabled="searchLoading">
+          {{ searchLoading ? '검색 중...' : '관심 영화 커뮤니티' }}
+        </button>
       </div>
     </section>
   </div>
@@ -115,6 +151,10 @@ textarea {
 button {
   padding: 10px 14px;
   cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .saved {
   color: #2d7a2d;
