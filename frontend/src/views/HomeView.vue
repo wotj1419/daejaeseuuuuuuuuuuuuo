@@ -72,244 +72,183 @@ function goToMovieDetail(tmdbId) {
 </script>
 
 <template>
-  <div>
-    <h1>MovieMate</h1>
-    <p style="color:#666; margin-bottom:20px;">
-      영화 추천 멘트를 입력하면 관련 영화를 추천해드립니다.
-    </p>
-
-    <div class="search-container">
-      <div class="search-box">
-        <input 
-          v-model="searchQuery" 
-          @keyup.enter="searchMovies"
-          :placeholder="isAiMode ? 'AI에게 기분이나 상황을 말해보세요' : '예: 액션 영화, 로맨스 영화 등'" 
-          class="search-input"
-        />
-        <button @click="searchMovies" :disabled="loading" class="search-button">
-          {{ loading ? '검색 중...' : '검색' }}
-        </button>
-      </div>
-    </div>
-
-    <div class="mode-toggle">
-      <label class="switch">
-        <input type="checkbox" v-model="isAiMode">
-        <span class="slider round"></span>
-      </label>
-      <span class="mode-label">{{ isAiMode ? '🤖 AI 추천 모드 ON' : '🔍 일반 검색 모드' }}</span>
-    </div>
-
-    <div v-if="error" class="error-message">{{ error }}</div>
-    
-    <!-- AI 결과 표시 -->
-    <div v-if="aiResult" class="ai-result-box">
-      <h3>🤖 AI의 추천</h3>
-      <div class="ai-content">{{ aiResult }}</div>
-    </div>
-    
-    <div v-if="totalResults > 0" class="results-info">
-      총 {{ totalResults }}개의 영화를 찾았습니다.
-    </div>
-
-    <div v-if="loading" class="loading">검색 중...</div>
-
-    <div v-if="!loading && searchResults.length > 0" class="movies-grid">
-      <div 
-        v-for="movie in searchResults" 
-        :key="movie.tmdb_id" 
-        class="movie-card"
-        @click="goToMovieDetail(movie.tmdb_id)"
-      >
-        <div class="poster">
-          <img 
-            v-if="movie.poster_path" 
-            :src="posterUrl(movie.poster_path)" 
-            alt="poster" 
-          />
-          <div v-else class="noimg">No Image</div>
-        </div>
-        <div class="movie-info">
-          <div class="title">{{ movie.title }}</div>
-          <div class="meta">
-            <span>⭐ {{ movie.vote_average?.toFixed(1) || '-' }}</span>
-            <span>🔥 {{ movie.popularity?.toFixed(0) || '-' }}</span>
+  <div class="home-container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">Movie Mate</h1>
+        <p class="hero-subtitle">취향에 맞는 영화를 찾아보세요. </p>
+        
+        <div class="search-wrapper">
+          <div class="mode-toggle">
+            <label class="switch">
+              <input type="checkbox" v-model="isAiMode">
+              <span class="slider round"></span>
+            </label>
+            <span class="mode-label">{{ isAiMode ? '🤖 AI 추천 모드' : '🔍 일반 검색' }}</span>
           </div>
-          <p class="overview" v-if="movie.overview">{{ movie.overview }}</p>
-          <div class="release-date" v-if="movie.release_date">
-            {{ movie.release_date }}
+          
+          <div class="search-box">
+            <input 
+              v-model="searchQuery" 
+              @keyup.enter="searchMovies"
+              :placeholder="isAiMode ? 'AI에게 기분이나 상황을 말해보세요 (예: 오늘 기분이 우울해)' : '영화 제목을 검색하세요'" 
+              class="search-input"
+            />
+            <button @click="searchMovies" :disabled="loading" class="search-button">
+              {{ loading ? '검색 중...' : '검색' }}
+            </button>
           </div>
         </div>
       </div>
-    </div>
+      <div class="hero-gradient"></div>
+    </section>
+
+    <!-- Content Section -->
+    <section class="content-section">
+      <div v-if="error" class="error-message">{{ error }}</div>
+      
+      <!-- AI 결과 표시 -->
+      <div v-if="aiResult" class="ai-result-box">
+        <h3>🤖 AI의 추천</h3>
+        <div class="ai-content">{{ aiResult }}</div>
+      </div>
+      
+      <div v-if="totalResults > 0" class="results-info">
+        총 {{ totalResults }}개의 영화를 찾았습니다.
+      </div>
+
+      <div v-if="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>검색 중...</p>
+      </div>
+
+      <div v-if="!loading && searchResults.length > 0" class="movies-grid">
+        <div 
+          v-for="movie in searchResults" 
+          :key="movie.tmdb_id" 
+          class="movie-card"
+          @click="goToMovieDetail(movie.tmdb_id)"
+        >
+          <div class="poster">
+            <img 
+              v-if="movie.poster_path" 
+              :src="posterUrl(movie.poster_path)" 
+              alt="poster" 
+            />
+            <div v-else class="noimg">No Image</div>
+            <div class="card-overlay">
+              <div class="play-button">▶</div>
+            </div>
+          </div>
+          <div class="movie-info">
+            <div class="title">{{ movie.title }}</div>
+            <div class="meta">
+              <span>⭐ {{ movie.vote_average?.toFixed(1) || '-' }}</span>
+              <span>{{ movie.release_date?.substring(0, 4) || '-' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.search-container {
-  margin: 20px 0;
-}
-
-.search-box {
-  display: flex;
-  gap: 10px;
-  max-width: 600px;
-}
-
-.search-input {
-  flex: 1;
-  padding: 12px 16px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.3s;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #4CAF50;
-}
-
-.search-button {
-  padding: 12px 24px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.search-button:hover:not(:disabled) {
-  background-color: #45a049;
-}
-
-.search-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.error-message {
-  color: #f44336;
-  margin: 16px 0;
-  padding: 12px;
-  background-color: #ffebee;
-  border-radius: 8px;
-}
-
-.results-info {
-  color: #666;
-  margin: 16px 0;
-  font-size: 14px;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #666;
-  font-size: 18px;
-}
-
-.movies-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  margin-top: 24px;
-}
-
-.movie-card {
-  border: 1px solid #eee;
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  background: white;
-}
-
-.movie-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.poster {
+.home-container {
   width: 100%;
-  height: 400px;
-  overflow: hidden;
-  background: #f4f4f4;
+  min-height: 100vh;
+  background-color: #000000;
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.poster img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.noimg {
-  color: #777;
-  font-size: 14px;
-}
-
-.movie-info {
-  padding: 16px;
-}
-
-.title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #333;
-}
-
-.meta {
-  display: flex;
-  justify-content: space-between;
-  color: #555;
-  font-size: 14px;
-  margin-bottom: 8px;
-}
-
-.overview {
-  color: #666;
-  font-size: 13px;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
   overflow: hidden;
-  margin: 8px 0;
 }
 
-.release-date {
-  color: #999;
-  font-size: 12px;
-  margin-top: 8px;
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(0, 255, 0, 0.1) 0%, transparent 50%);
+  animation: pulse 8s ease-in-out infinite;
 }
-</style>
 
-<style scoped>
-/* Toggle Switch Styles */
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.hero-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 150px;
+  background: linear-gradient(to top, #000000, transparent);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-width: 900px;
+  padding: 0 20px;
+}
+
+.hero-title {
+  font-size: 56px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 20px;
+  line-height: 1.2;
+  text-shadow: 2px 2px 20px rgba(0, 0, 0, 0.8);
+}
+
+.hero-subtitle {
+  font-size: 24px;
+  color: #e5e5e5;
+  margin-bottom: 40px;
+  font-weight: 400;
+  text-shadow: 1px 1px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* Search Wrapper */
+.search-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
 .mode-toggle {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 12px;
 }
 
 .mode-label {
-  font-weight: bold;
-  color: #333;
+  font-weight: 600;
+  color: #1DB954;
+  font-size: 16px;
+  text-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
 }
 
 .switch {
   position: relative;
   display: inline-block;
-  width: 50px;
-  height: 28px;
+  width: 60px;
+  height: 32px;
 }
 
 .switch input { 
@@ -325,15 +264,16 @@ function goToMovieDetail(tmdbId) {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: #333;
   transition: .4s;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .slider:before {
   position: absolute;
   content: "";
-  height: 20px;
-  width: 20px;
+  height: 24px;
+  width: 24px;
   left: 4px;
   bottom: 4px;
   background-color: white;
@@ -341,15 +281,12 @@ function goToMovieDetail(tmdbId) {
 }
 
 input:checked + .slider {
-  background-color: #2196F3;
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
+  background-color: #1DB954;
+  box-shadow: 0 0 20px rgba(29, 185, 84, 0.6);
 }
 
 input:checked + .slider:before {
-  transform: translateX(22px);
+  transform: translateX(28px);
 }
 
 .slider.round {
@@ -360,22 +297,269 @@ input:checked + .slider:before {
   border-radius: 50%;
 }
 
-.ai-result-box {
-  background: #e3f2fd;
+/* Search Box */
+.search-box {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 700px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 18px 24px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  padding: 20px;
-  margin: 20px 0;
-  border: 1px solid #bbdefb;
+  font-size: 16px;
+  color: #ffffff;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #1DB954;
+  background-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px rgba(29, 185, 84, 0.3);
+}
+
+.search-button {
+  padding: 18px 36px;
+  background-color: #1DB954;
+  color: #000000;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 20px rgba(29, 185, 84, 0.4);
+}
+
+.search-button:hover:not(:disabled) {
+  background-color: #169B43;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(29, 185, 84, 0.6);
+}
+
+.search-button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Content Section */
+.content-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 60px 50px;
+}
+
+.error-message {
+  color: #FF4444;
+  margin: 24px 0;
+  padding: 16px 24px;
+  background-color: rgba(255, 68, 68, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  text-align: center;
+}
+
+.results-info {
+  color: #888;
+  margin: 24px 0;
+  font-size: 16px;
+  text-align: center;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #1DB954;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(29, 185, 84, 0.1);
+  border-top: 4px solid #1DB954;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* AI Result Box */
+.ai-result-box {
+  background: linear-gradient(135deg, rgba(0, 255, 0, 0.1) 0%, rgba(0, 200, 0, 0.05) 100%);
+  border-radius: 16px;
+  padding: 30px;
+  margin: 30px 0;
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 255, 0, 0.2);
 }
 
 .ai-result-box h3 {
   margin-top: 0;
-  color: #1565c0;
+  color: #1DB954;
+  font-size: 24px;
+  margin-bottom: 16px;
 }
 
 .ai-content {
-  line-height: 1.6;
+  line-height: 1.8;
   white-space: pre-wrap;
-  color: #333;
+  color: #e5e5e5;
+  font-size: 16px;
+}
+
+/* Movies Grid */
+.movies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.movie-card {
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #141414;
+}
+
+.movie-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(29, 185, 84, 0.3);
+  z-index: 10;
+}
+
+.poster {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  overflow: hidden;
+  background: #222;
+}
+
+.poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.movie-card:hover .poster img {
+  transform: scale(1.1);
+}
+
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.movie-card:hover .card-overlay {
+  opacity: 1;
+}
+
+.play-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #1DB954;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  transform: scale(0.8);
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 20px rgba(29, 185, 84, 0.6);
+}
+
+.movie-card:hover .play-button {
+  transform: scale(1);
+}
+
+.noimg {
+  color: #666;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.movie-info {
+  padding: 16px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #ffffff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  color: #888;
+  font-size: 13px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+  }
+  
+  .hero-subtitle {
+    font-size: 18px;
+  }
+  
+  .search-box {
+    flex-direction: column;
+  }
+  
+  .search-button {
+    width: 100%;
+  }
+  
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+  
+  .content-section {
+    padding: 40px 20px;
+  }
 }
 </style>
+

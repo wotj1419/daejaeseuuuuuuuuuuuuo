@@ -15,6 +15,7 @@ from .serializers import (
 
 class MovieListAPIView(APIView):
     def get(self, request):
+        # 먼저 DB에서 영화 가져오기
         movies = (
             Movie.objects
             .annotate(
@@ -23,8 +24,55 @@ class MovieListAPIView(APIView):
             )
             .order_by('-popularity')
         )
+        
+        # DB에 영화가 없으면 TMDB에서 인기 영화 가져오기
+        if not movies.exists():
+            tmdb_movies = self.fetch_popular_movies_from_tmdb()
+            return Response(tmdb_movies)
+        
         serializer = MovieListSerializer(movies, many=True)
         return Response(serializer.data)
+    
+    def fetch_popular_movies_from_tmdb(self):
+        """TMDB API에서 인기 영화 가져오기"""
+        api_key = settings.TMDB_API_KEY
+        if not api_key:
+            return []
+        
+        tmdb_url = "https://api.themoviedb.org/3/movie/popular"
+        params = {
+            'api_key': api_key,
+            'language': 'ko-KR',
+            'page': 1
+        }
+        
+        try:
+            response = requests.get(tmdb_url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # TMDB 결과를 우리 형식으로 변환
+            results = []
+            for movie in data.get('results', [])[:20]:  # 최대 20개
+                results.append({
+                    'tmdb_id': movie.get('id'),
+                    'title': movie.get('title'),
+                    'original_title': movie.get('original_title'),
+                    'overview': movie.get('overview', ''),
+                    'release_date': movie.get('release_date'),
+                    'poster_path': movie.get('poster_path', ''),
+                    'backdrop_path': movie.get('backdrop_path', ''),
+                    'vote_average': movie.get('vote_average', 0),
+                    'vote_count': movie.get('vote_count', 0),
+                    'popularity': movie.get('popularity', 0),
+                })
+            
+            return results
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching popular movies from TMDB: {e}")
+            return []
+
 
 
 class MovieDetailAPIView(APIView):

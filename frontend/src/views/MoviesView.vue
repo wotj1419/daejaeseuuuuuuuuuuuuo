@@ -1,7 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { moviesApi } from '@/api/movies'
 
+const router = useRouter()
 const loading = ref(false)
 const error = ref(null)
 const allMovies = ref([])
@@ -37,73 +39,436 @@ async function loadMovies() {
     allMovies.value = Array.isArray(data) ? data : (data.results || [])
   } catch (e) {
     console.error(e)
-    error.value = '영화 목록 API를 불러오지 못했어요. (엔드포인트/서버/CORS 확인)'
+    error.value = '영화 목록을 불러오지 못했습니다.'
   } finally {
     loading.value = false
   }
+}
+
+function goToMovieDetail(tmdbId) {
+  router.push({ name: 'movieDetail', params: { movieId: tmdbId } })
 }
 
 onMounted(loadMovies)
 </script>
 
 <template>
-  <div>
-    <h2>영화 목록</h2>
-    <p style="color:#666;">
-      로그인 없이 백엔드(TMDB 연동)에서 내려주는 영화 데이터를 사용합니다.
-    </p>
-
-    <div class="search">
-      <input v-model="q" placeholder="제목/줄거리로 검색" />
-      <span class="count">{{ movies.length }}개</span>
-      <button @click="loadMovies">새로고침</button>
-    </div>
-
-    <p v-if="loading">불러오는 중...</p>
-    <p v-if="error" style="color:#c00;">{{ error }}</p>
-
-    <div class="grid" v-if="!loading && movies.length">
-      <div v-for="m in movies" :key="m.id" class="card">
-        <div class="poster">
-          <img v-if="m.poster_path" :src="posterUrl(m.poster_path)" alt="poster" />
-          <div v-else class="noimg">No Image</div>
+  <div class="movies-container">
+    <!-- Header Section -->
+    <section class="header-section">
+      <div class="header-content">
+        <h1 class="page-title">영화 목록</h1>
+        <p class="page-subtitle">검색 가능한 모든 영화를 둘러보세요</p>
+        
+        <div class="search-bar">
+          <input 
+            v-model="q" 
+            placeholder="영화 제목이나 줄거리로 검색하세요..." 
+            class="search-input"
+          />
+          <button @click="loadMovies" class="refresh-button">
+            <span>⟳</span> 새로고침
+          </button>
         </div>
-
-        <div class="title">{{ m.title }}</div>
-
-        <div class="meta">
-          <span>⭐ {{ m.vote_average ?? '-' }}</span>
-          <span>🔥 {{ m.popularity ?? '-' }}</span>
-        </div>
-
-        <p class="overview" v-if="m.overview">{{ m.overview }}</p>
-
-        <!-- 너 기존 구조로 연결(원하면) -->
-        <div class="actions">
-          <RouterLink :to="{ name: 'movieDetail', params: { movieId: m.tmdb_id } }">허브</RouterLink>
-          <RouterLink :to="{ name: 'community', params: { movieId: m.tmdb_id } }">리뷰</RouterLink>
+        
+        <div class="movie-count">
+          <span class="count-badge">{{ movies.length }}</span>개의 영화
         </div>
       </div>
+    </section>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <p>영화 목록을 불러오는 중...</p>
     </div>
 
-    <p v-else-if="!loading && !error">영화 데이터가 비어있어요.</p>
+    <!-- Error State -->
+    <div v-if="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <!-- Movies Grid -->
+    <section v-if="!loading && movies.length > 0" class="movies-section">
+      <div class="movies-grid">
+        <div 
+          v-for="m in movies" 
+          :key="m.id" 
+          class="movie-card"
+          @click="goToMovieDetail(m.tmdb_id)"
+        >
+          <div class="poster">
+            <img v-if="m.poster_path" :src="posterUrl(m.poster_path)" alt="poster" />
+            <div v-else class="noimg">No Image</div>
+            <div class="card-overlay">
+              <div class="play-button">▶</div>
+            </div>
+          </div>
+
+          <div class="movie-info">
+            <div class="title">{{ m.title }}</div>
+            <div class="meta">
+              <span>⭐ {{ m.vote_average ?? '-' }}</span>
+              <span>🔥 {{ m.popularity?.toFixed(0) ?? '-' }}</span>
+            </div>
+            <p class="overview" v-if="m.overview">{{ m.overview }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty State -->
+    <div v-else-if="!loading && !error" class="empty-state">
+      <div class="empty-icon">🎬</div>
+      <p>영화 데이터가 없습니다.</p>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.search { display:flex; gap:10px; align-items:center; margin:12px 0; flex-wrap:wrap; }
-.search input { padding:10px; width:320px; border:1px solid #ddd; border-radius:10px; }
-.count { color:#666; font-size:14px; }
-button { padding:10px 14px; cursor:pointer; }
+.movies-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #000000;
+  padding-bottom: 60px;
+}
 
-.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:12px; margin-top:12px; }
-.card { border:1px solid #eee; border-radius:12px; padding:10px; }
-.poster { width:100%; height:280px; border-radius:10px; overflow:hidden; background:#f4f4f4; display:flex; align-items:center; justify-content:center; }
-.poster img { width:100%; height:100%; object-fit:cover; }
-.noimg { color:#777; font-size:14px; }
-.title { margin-top:10px; font-weight:800; }
-.meta { margin-top:6px; color:#555; font-size:14px; display:flex; justify-content:space-between; }
-.overview { margin-top:8px; color:#666; font-size:13px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-.actions { display:flex; gap:10px; margin-top:10px; }
-.actions a { text-decoration:none; color:#333; border:1px solid #ddd; padding:6px 10px; border-radius:10px; }
+/* Header Section */
+.header-section {
+  padding: 60px 50px 40px;
+  background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+  border-bottom: 1px solid #222;
+}
+
+.header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 48px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.page-subtitle {
+  font-size: 18px;
+  color: #888;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+/* Search Bar */
+.search-bar {
+  display: flex;
+  gap: 12px;
+  max-width: 700px;
+  margin: 0 auto 24px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 280px;
+  padding: 16px 24px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 16px;
+  color: #ffffff;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #1DB954;
+  background-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px rgba(29, 185, 84, 0.3);
+}
+
+.refresh-button {
+  padding: 16px 28px;
+  background-color: #1DB954;
+  color: #000000;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 20px rgba(29, 185, 84, 0.4);
+}
+
+.refresh-button span {
+  font-size: 20px;
+  display: inline-block;
+}
+
+.refresh-button:hover {
+  background-color: #169B43;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(29, 185, 84, 0.6);
+}
+
+.refresh-button:active span {
+  animation: rotate 0.6s ease-in-out;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Movie Count */
+.movie-count {
+  text-align: center;
+  color: #888;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.count-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #1DB954 0%, #169B43 100%);
+  color: #000000;
+  padding: 4px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 20px;
+  margin-right: 6px;
+  box-shadow: 0 2px 10px rgba(29, 185, 84, 0.4);
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 100px 20px;
+  color: #1DB954;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid rgba(29, 185, 84, 0.1);
+  border-top: 5px solid #1DB954;
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error Message */
+.error-message {
+  max-width: 600px;
+  margin: 60px auto;
+  padding: 24px;
+  background-color: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  border-radius: 12px;
+  color: #FF4444;
+  text-align: center;
+  font-size: 16px;
+}
+
+/* Movies Section */
+.movies-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 50px;
+}
+
+.movies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+.movie-card {
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #141414;
+}
+
+.movie-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(29, 185, 84, 0.3);
+  z-index: 10;
+}
+
+.poster {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  overflow: hidden;
+  background: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.movie-card:hover .poster img {
+  transform: scale(1.1);
+}
+
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.movie-card:hover .card-overlay {
+  opacity: 1;
+}
+
+.play-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #1DB954;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  padding-left: 4px;
+  transform: scale(0.8);
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 20px rgba(29, 185, 84, 0.6);
+}
+
+.movie-card:hover .play-button {
+  transform: scale(1);
+}
+
+.noimg {
+  color: #666;
+  font-size: 14px;
+}
+
+.movie-info {
+  padding: 16px;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #ffffff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  color: #888;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.overview {
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 100px 20px;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 72px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 18px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-section {
+    padding: 40px 20px 30px;
+  }
+  
+  .page-title {
+    font-size: 32px;
+  }
+  
+  .page-subtitle {
+    font-size: 16px;
+  }
+  
+  .search-bar {
+    flex-direction: column;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .refresh-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .movies-section {
+    padding: 30px 20px;
+  }
+  
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+  
+  .poster {
+    height: 240px;
+  }
+}
 </style>
+

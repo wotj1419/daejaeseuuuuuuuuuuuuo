@@ -7,16 +7,17 @@ const authStore = useAuthStore()
 
 <template>
   <header class="nav">
-    <RouterLink class="link" to="/">Home</RouterLink>
-    <RouterLink class="link" to="/movies">Movies</RouterLink>
+    <div class="logo">MovieMate</div>
+    <RouterLink class="link" to="/">홈</RouterLink>
+    <RouterLink class="link" to="/movies">영화</RouterLink>
     
     <div v-if="authStore.isAuthenticated" class="auth-links">
-      <RouterLink class="link" to="/profile">Profile</RouterLink>
-      <a href="#" class="link" @click.prevent="authStore.logout">Logout</a>
+      <RouterLink class="link" to="/profile">프로필</RouterLink>
+      <a href="#" class="link" @click.prevent="authStore.logout">로그아웃</a>
     </div>
     <div v-else class="auth-links">
-       <RouterLink class="link" to="/login">Login</RouterLink>
-       <RouterLink class="link" to="/signup">Sign Up</RouterLink>
+       <RouterLink class="link" to="/login">로그인</RouterLink>
+       <RouterLink class="link" to="/signup">회원가입</RouterLink>
     </div>
   </header>
 
@@ -25,26 +26,79 @@ const authStore = useAuthStore()
   </main>
 </template>
 
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #000000;
+  color: #ffffff;
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+  background-color: #000000;
+}
+</style>
+
 <style scoped>
 .nav {
   display: flex;
-  gap: 12px;
-  padding: 12px;
-  border-bottom: 1px solid #eee;
+  gap: 24px;
+  padding: 20px 50px;
+  background-color: #000000;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #222;
 }
+
+.logo {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1DB954;
+  margin-right: 20px;
+  letter-spacing: -0.5px;
+}
+
 .auth-links {
   margin-left: auto;
   display: flex;
-  gap: 12px;
+  gap: 20px;
+  align-items: center;
 }
+
 .link {
   text-decoration: none;
-  color: #333;
+  color: #e5e5e5;
+  font-size: 15px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  position: relative;
 }
+
+.link:hover {
+  color: #1DB954;
+}
+
+.link.router-link-active {
+  color: #1DB954;
+  font-weight: 700;
+}
+
 .wrap {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 16px;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #000000;
+  min-height: calc(100vh - 70px);
 }
 </style>
