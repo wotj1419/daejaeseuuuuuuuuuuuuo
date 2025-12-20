@@ -1,14 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { moviesApi } from '@/api/movies'
-
-// Swiper 관련 임포트
-import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Autoplay, EffectFade, Pagination } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/effect-fade'
-import 'swiper/css/pagination'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -19,31 +12,117 @@ const totalResults = ref(0)
 const isAiMode = ref(false)
 const aiResult = ref('')
 
-// 인기 영화 목록 (캐러셀용)
+// 홈 히어로용 영화 + 예고편
+const heroMovies = ref([])
+const currentHeroIndex = ref(0)
+let heroTimer = null
+const defaultHeroMovies = ref([])
+
+// 추가 정보용 (없을 때 기본 안내)
 const popularMovies = ref([])
 
-// TMDB poster_path가 상대경로일 때 보정
 function posterUrl(path) {
   if (!path) return ''
   if (path.startsWith('http')) return path
   return `https://image.tmdb.org/t/p/w500${path}`
 }
 
-// 배경화면용 고해상도 이미지 경로
 function backdropUrl(path) {
   if (!path) return ''
   if (path.startsWith('http')) return path
   return `https://image.tmdb.org/t/p/original${path}`
 }
 
-async function fetchPopularMovies() {
+function addAutoplayParams(url) {
+  if (!url) return null
+  const joiner = url.includes('?') ? '&' : '?'
+  return `${url}${joiner}autoplay=1&mute=1&controls=0&rel=0&playsinline=1`
+}
+
+async function buildHeroEntries(movies) {
+  const candidates = (movies || []).filter(Boolean).slice(0, 10)
+  if (!candidates.length) return []
+
+  const entries = await Promise.all(
+    candidates.map(async (movie) => {
+      const tmdbId = movie.tmdb_id || movie.id
+      let trailerUrl = null
+      if (tmdbId) {
+        try {
+          const { data: trailerData } = await moviesApi.trailer(tmdbId)
+          trailerUrl = addAutoplayParams(trailerData.trailer)
+        } catch (err) {
+          console.warn('예고편 로드 실패', err)
+        }
+      }
+      return { ...movie, tmdb_id: tmdbId, trailerUrl }
+    })
+  )
+
+  const preferred = entries.filter((entry) => entry.trailerUrl)
+  return preferred.length ? preferred : entries
+}
+
+async function applyHeroCandidates(movies, { recordDefault = false } = {}) {
+  if (!movies || !movies.length) return
+  const heroSet = await buildHeroEntries(movies)
+  if (!heroSet.length) return
+
+  heroMovies.value = heroSet
+  currentHeroIndex.value = 0
+  if (recordDefault) {
+    defaultHeroMovies.value = heroSet.map((entry) => ({ ...entry }))
+  }
+  startHeroLoop()
+}
+
+function resetHeroToDefault() {
+  if (!defaultHeroMovies.value.length) return
+  heroMovies.value = defaultHeroMovies.value
+  currentHeroIndex.value = 0
+  startHeroLoop()
+}
+
+async function fetchHeroMovies() {
   try {
     const { data } = await moviesApi.list()
-    popularMovies.value = data.slice(0, 10) // 상위 10개만 표시
+    popularMovies.value = data.slice(0, 10)
+    const candidates = data.slice(0, 8)
+    await applyHeroCandidates(candidates, { recordDefault: true })
   } catch (e) {
-    console.error('인기 영화를 불러오는데 실패했습니다:', e)
+    console.error('홈 예고편 불러오는 중 오류:', e)
   }
 }
+
+function startHeroLoop() {
+  clearHeroLoop()
+  if (!heroMovies.value.length) return
+  heroTimer = setInterval(() => {
+    if (!heroMovies.value.length) return
+    currentHeroIndex.value = (currentHeroIndex.value + 1) % heroMovies.value.length
+  }, 10000)
+}
+
+function clearHeroLoop() {
+  if (heroTimer) {
+    clearInterval(heroTimer)
+    heroTimer = null
+  }
+}
+
+const currentHero = computed(() => heroMovies.value[currentHeroIndex.value] || popularMovies.value[0] || null)
+const heroHookLines = computed(() => {
+  const title = currentHero.value?.title || ' ȭ'
+  const overview = (currentHero.value?.overview || '').replace(/\s+/g, ' ').trim()
+  const snippet = overview
+    ? (overview.length > 160 ? `${overview.slice(0, 160)}...` : overview)
+    : 'ݺ    ̾߱Ⱑ ϴ.'
+
+  const line1 = `${title}   ?`
+  const line2 = `${snippet}   ʹٸ  Ȯغ?`
+
+  return [line1, line2]
+})
 
 async function searchMovies() {
   const query = searchQuery.value.trim()
@@ -58,13 +137,15 @@ async function searchMovies() {
 
   try {
     if (isAiMode.value) {
-      const { data } = await moviesApi.aiRecommend(query)
+      const { data } = await moviesApi.aiRecommend(query, 10)
       aiResult.value = data.result
       
       if (data.movies && data.movies.length > 0) {
         searchResults.value = data.movies
+        await applyHeroCandidates(searchResults.value)
       } else {
         searchResults.value = []
+        resetHeroToDefault()
       }
       totalResults.value = searchResults.value.length
     } else {
@@ -76,17 +157,17 @@ async function searchMovies() {
       if (searchResults.value.length === 0) {
         error.value = '검색 결과가 없습니다.'
       }
+      resetHeroToDefault()
     }
   } catch (e) {
     console.error(e)
     error.value = isAiMode.value 
-      ? 'AI 추천 중 오류가 발생했습니다.' 
+      ? 'AI 추천 처리 중 오류가 발생했습니다.' 
       : '영화 검색 중 오류가 발생했습니다.'
     searchResults.value = []
     aiResult.value = ''
   } finally {
     loading.value = false
-    // 검색 결과가 있으면 해당 영역으로 스크롤
     if (searchResults.value.length > 0) {
       setTimeout(() => {
         document.querySelector('.content-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -100,57 +181,52 @@ function goToMovieDetail(tmdbId) {
 }
 
 onMounted(() => {
-  fetchPopularMovies()
+  fetchHeroMovies()
+})
+
+onUnmounted(() => {
+  clearHeroLoop()
 })
 </script>
 
 <template>
   <div class="home-container">
-    <!-- Hero Section with Swiper Carousel -->
+    <!-- Hero Section with YouTube trailer background -->
     <section class="hero">
-      <swiper
-        :modules="[Autoplay, EffectFade, Pagination]"
-        :slides-per-view="1"
-        :loop="true"
-        :effect="'fade'"
-        :fade-effect="{ crossFade: true }"
-        :autoplay="{
-          delay: 5000,
-          disableOnInteraction: false,
-        }"
-        :pagination="{ clickable: true }"
-        class="hero-swiper"
-      >
-        <swiper-slide v-for="movie in popularMovies" :key="movie.tmdb_id">
-          <!-- 배경 이미지 레이어 -->
-          <div class="slide-background" :style="{ backgroundImage: `url(${backdropUrl(movie.backdrop_path)})` }"></div>
-          
-          <!-- 오버레이 레이어 -->
-          <div class="slide-overlay"></div>
-          
-          <!-- 컨텐츠 레이어 -->
-          <div class="hero-content">
-            <h1 class="hero-title">{{ movie.title }}</h1>
-            <p class="hero-subtitle">{{ movie.overview?.substring(0, 150) }}...</p>
-            <div class="hero-actions">
-              <button @click="goToMovieDetail(movie.tmdb_id)" class="detail-button primary">
-                <span class="play-icon">▶</span> 상세정보
-              </button>
-            </div>
-          </div>
-        </swiper-slide>
-        
-        <!-- 기본 배경 (로딩 중 또는 데이터 없음) -->
-        <swiper-slide v-if="popularMovies.length === 0">
-          <div class="slide-background default-bg"></div>
-          <div class="hero-content">
-            <h1 class="hero-title">Movie Mate</h1>
-            <p class="hero-subtitle">당신의 취향을 저격할 영화를 찾아줍니다.</p>
-          </div>
-        </swiper-slide>
-      </swiper>
+      <div class="video-layer" v-if="currentHero?.trailerUrl">
+        <iframe
+          :key="currentHero.tmdb_id"
+          :src="currentHero.trailerUrl"
+          title="Movie trailer"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        />
+      </div>
 
-      <!-- 검색 컨테이너 (Hero 내부 하단 중앙 배치) -->
+      <div
+        v-else
+        class="video-fallback"
+        :style="{ backgroundImage: `url(${backdropUrl(currentHero?.backdrop_path)})` }"
+      ></div>
+
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <p class="hero-kicker">지금 재생 중인 예고편</p>
+        <h1 class="hero-title">{{ currentHero?.title || 'Movie Mate' }}</h1>
+        <p class="hero-subtitle">
+          <span class="hero-subtitle-line" v-for="line in heroHookLines" :key="line">
+            {{ line }}
+          </span>
+        </p>
+        <div class="hero-actions" v-if="currentHero">
+          <button @click="goToMovieDetail(currentHero.tmdb_id)" class="detail-button primary">
+            <span class="play-icon">▶</span> 자세히보기
+          </button>
+        </div>
+      </div>
+
+      <!-- 검색 컨테이너 (Hero 중앙 하단 배치) -->
       <div class="search-container">
         <div class="search-wrapper">
           <div class="mode-selector">
@@ -159,14 +235,14 @@ onMounted(() => {
               :class="{ active: !isAiMode }" 
               @click="isAiMode = false"
             >
-              🔍 일반 검색
+              직접 키워드 검색
             </button>
             <button 
               class="mode-btn ai" 
               :class="{ active: isAiMode }" 
               @click="isAiMode = true"
             >
-              🤖 AI 영화 추천
+              MovieMate에게 추천 받기
             </button>
           </div>
           
@@ -175,7 +251,7 @@ onMounted(() => {
               <input 
                 v-model="searchQuery" 
                 @keyup.enter="searchMovies"
-                :placeholder="isAiMode ? '오늘 기분이 어떤가요? 상황에 맞는 영화를 추천해드릴게요.' : '궁금한 영화 제목을 입력하세요'" 
+                :placeholder="isAiMode ? '오늘 기분이 어떤가요? 취향에 맞는 영화를 추천해드릴게요.' : '제목이나 키워드를 입력해주세요.'" 
                 class="search-input"
               />
               <button @click="searchMovies" :disabled="loading" class="search-button">
@@ -196,7 +272,7 @@ onMounted(() => {
       
       <!-- AI 결과 표시 -->
       <div v-if="aiResult" class="ai-result-box">
-        <h3>🤖 AI의 추천</h3>
+        <h3>MovieMate의 추천</h3>
         <div class="ai-content">{{ aiResult }}</div>
       </div>
       
@@ -230,7 +306,7 @@ onMounted(() => {
           <div class="movie-info">
             <div class="title">{{ movie.title }}</div>
             <div class="meta">
-              <span>⭐ {{ movie.vote_average?.toFixed(1) || '-' }}</span>
+              <span>★ {{ movie.vote_average?.toFixed(1) || '-' }}</span>
               <span>{{ movie.release_date?.substring(0, 4) || '-' }}</span>
             </div>
           </div>
@@ -250,50 +326,39 @@ onMounted(() => {
 /* Hero Section */
 .hero {
   position: relative;
-  height: 95vh;
+  height: calc(100vh - var(--nav-height, 64px));
+  min-height: 540px;
   width: 100%;
   background-color: #000;
   overflow: hidden;
 }
 
-.hero-swiper {
-  width: 100%;
-  height: 100%;
-}
-
-:deep(.swiper-slide) {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background-color: #000;
-}
-
-.slide-background {
+.video-layer,
+.video-fallback {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
   z-index: 1;
 }
 
-.default-bg {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-}
-
-.slide-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
+.video-layer iframe {
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 80%);
-  background-color: rgba(0, 0, 0, 0.4);
-  z-index: 2;
   pointer-events: none;
+}
+
+.video-fallback {
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.7) 80%);
+  z-index: 2;
 }
 
 .hero-content {
@@ -301,7 +366,7 @@ onMounted(() => {
   top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 10;
+  z-index: 5;
   text-align: center;
   width: 100%;
   max-width: 1000px;
@@ -309,6 +374,13 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.hero-kicker {
+  color: #9ef5be;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-bottom: 12px;
 }
 
 .hero-title {
@@ -325,14 +397,16 @@ onMounted(() => {
   font-size: clamp(16px, 1.5vw, 20px);
   color: #e5e5e5;
   margin-bottom: 30px;
-  max-width: 800px;
-  line-height: 1.6;
+  max-width: 820px;
+  line-height: 1.8;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   animation: fadeInUp 1s ease-out;
+  font-family: 'Pretendard', 'Spoqa Han Sans', 'Noto Sans KR', system-ui, sans-serif;
+}
+
+.hero-subtitle-line {
+  display: block;
+  font-weight: 600;
 }
 
 .hero-actions {
@@ -489,27 +563,6 @@ onMounted(() => {
 /* Shared Spinner Animation */
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* Swiper Customize */
-:deep(.swiper-pagination) {
-  bottom: 30px !important;
-  right: 30px !important;
-  left: auto !important;
-  width: auto !important;
-}
-
-:deep(.swiper-pagination-bullet) {
-  background: rgba(255, 255, 255, 0.4);
-  width: 8px;
-  height: 8px;
-  transition: all 0.3s;
-}
-
-:deep(.swiper-pagination-bullet-active) {
-  background: #1db954;
-  width: 24px;
-  border-radius: 4px;
 }
 
 /* Content Section */

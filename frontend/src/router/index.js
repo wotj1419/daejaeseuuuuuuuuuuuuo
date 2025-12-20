@@ -9,6 +9,7 @@ import PostDetailView from '@/views/PostDetailView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import MyMoviesView from '@/views/MyMoviesView.vue'
 import MyReviewsView from '@/views/MyReviewsView.vue'
+import MovieShareView from '@/views/MovieShareView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
@@ -32,6 +33,7 @@ const router = createRouter({
     { path: '/posts/:id', name: 'postDetail', component: PostDetailView, props: true },
 
     { path: '/profile', name: 'profile', component: ProfileView },
+    { path: '/movie-share', name: 'movieShare', component: MovieShareView },
 
     // 내 영화 / 내 글
     { path: '/my-movies', name: 'myMovies', component: MyMoviesView },

@@ -38,31 +38,34 @@ onBeforeUnmount(() => {
     <RouterLink class="logo" to="/">MovieMate</RouterLink>
     <RouterLink class="link" to="/">홈</RouterLink>
     <RouterLink class="link" to="/movies">영화</RouterLink>
+    <RouterLink class="link" to="/movie-share">영화 공유</RouterLink>
     
     <div v-if="authStore.isAuthenticated" class="auth-links">
       <div class="profile-wrapper">
-        <button class="profile-btn" @click="toggleDropdown">
-          <div class="avatar">
-            {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
-          </div>
-          <span class="username-text">{{ authStore.user?.username }}</span>
-        </button>
+        
         
         <div v-if="showDropdown" class="profile-dropdown">
           <RouterLink class="dropdown-item" to="/my-movies" @click="closeDropdown">
-            ⭐ 내 영화
+            내 영화
           </RouterLink>
           <RouterLink class="dropdown-item" to="/my-reviews" @click="closeDropdown">
-            📝 내 글
+            내 리뷰
           </RouterLink>
           <div class="dropdown-divider"></div>
           <RouterLink class="dropdown-item" to="/profile" @click="closeDropdown">
-            ⚙️ 프로필 설정
+            프로필 수정
           </RouterLink>
         </div>
       </div>
       
       <a href="#" class="logout-link" @click.prevent="authStore.logout">로그아웃</a>
+      
+      <button class="profile-btn" @click="toggleDropdown">
+          <div class="avatar">
+            {{ authStore.user?.username?.charAt(0).toUpperCase() || '수정' }}
+          </div>
+          <span class="username-text">{{ authStore.user?.username }}</span>
+        </button>
     </div>
     <div v-else class="auth-links">
        <RouterLink class="link" to="/login">로그인</RouterLink>
@@ -142,6 +145,21 @@ body {
 .link.router-link-active {
   color: #1DB954;
   font-weight: 700;
+}
+
+.share-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1DB954 0%, #169B43 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #000;
+  box-shadow: 0 2px 12px rgba(29, 185, 84, 0.4);
+  text-decoration: none;
+  font-size: 16px;
 }
 
 .wrap {
