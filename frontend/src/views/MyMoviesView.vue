@@ -20,6 +20,22 @@ async function loadMyMovies() {
   }
 }
 
+/**
+ * 목록에서 영화를 제거합니다.
+ */
+async function removeMovie(tmdbId, event) {
+  event.stopPropagation() // 상세 페이지 이동 방지
+  if (!confirm('목록에서 제거하시겠습니까?')) return
+
+  try {
+    await favoritesApi.toggleFavorite(tmdbId)
+    // 현재 목록에서 즉시 제거
+    movies.value = movies.value.filter(m => m.tmdb_id !== tmdbId)
+  } catch (err) {
+    console.error('영화 제거 실패:', err)
+  }
+}
+
 function posterUrl(path) {
   if (!path) return ''
   if (path.startsWith('http')) return path
@@ -56,6 +72,10 @@ onMounted(loadMyMovies)
           <div class="poster">
             <img v-if="m.poster_path" :src="posterUrl(m.poster_path)" alt="poster" />
             <div v-else class="noimg">No Image</div>
+            <!-- 제거 버튼 -->
+            <button @click="removeMovie(m.tmdb_id, $event)" class="remove-btn">
+              ✕
+            </button>
             <div class="card-overlay">
               <div class="play-button">▶</div>
             </div>
@@ -223,6 +243,36 @@ onMounted(loadMyMovies)
 .noimg {
   color: #666;
   font-size: 14px;
+}
+
+/* 제거 버튼 스타일 */
+.remove-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.movie-card:hover .remove-btn {
+  opacity: 1;
+}
+
+.remove-btn:hover {
+  background: #ff4757;
+  border-color: #ff4757;
+  transform: scale(1.1);
 }
 
 .movie-info {
