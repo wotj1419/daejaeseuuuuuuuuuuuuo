@@ -2,11 +2,14 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRecommendationStore } from '@/stores/recommendation'
+import { useAuthStore } from '@/stores/auth'
 import { moviesApi } from '@/api/movies'
+import { favoritesApi } from '@/api/favorites'
 
 const route = useRoute()
 const router = useRouter()
 const store = useRecommendationStore()
+const authStore = useAuthStore()
 
 const movieId = computed(() => Number(route.params.movieId))
 
@@ -14,18 +17,58 @@ const movieId = computed(() => Number(route.params.movieId))
 const movie = ref(null)
 const loading = ref(false)
 const error = ref(null)
+const isFavorited = ref(false) // 좋아요 상태
 
+/**
+ * 영화 상세 정보를 가져오고 좋아요 상태를 확인합니다.
+ */
 async function loadMovieDetail() {
   loading.value = true
   error.value = null
   try {
     const { data } = await moviesApi.detail(movieId.value)
     movie.value = data
+    
+    // 로그인된 상태라면 좋아요 상태 확인
+    if (authStore.isAuthenticated) {
+      checkFavoriteStatus()
+    }
   } catch (err) {
     console.error(err)
     error.value = '영화 정보를 불러올 수 없습니다.'
   } finally {
     loading.value = false
+  }
+}
+
+/**
+ * 현재 영화의 좋아요 상태를 백엔드에서 가져옵니다.
+ */
+async function checkFavoriteStatus() {
+  try {
+    const { data } = await favoritesApi.checkFavoriteStatus(movieId.value)
+    isFavorited.value = data.is_favorited
+  } catch (err) {
+    console.error('좋아요 상태 확인 실패:', err)
+  }
+}
+
+/**
+ * 좋아요 상태를 토글합니다.
+ */
+async function toggleFavorite() {
+  if (!authStore.isAuthenticated) {
+    if (confirm('로그인이 필요한 기능입니다. 로그인 페이지로 이동하시겠습니까?')) {
+      router.push({ name: 'login' })
+    }
+    return
+  }
+
+  try {
+    const { data } = await favoritesApi.toggleFavorite(movieId.value)
+    isFavorited.value = data.is_favorited
+  } catch (err) {
+    console.error('좋아요 토글 실패:', err)
   }
 }
 
@@ -113,6 +156,16 @@ watch(movieId, async (newId) => {
 
           <button @click="goCommunity" class="community-btn">
             📢 리뷰 커뮤니티로 이동
+          </button>
+
+          <!-- 💖 좋아요/즐겨찾기 버튼 -->
+          <button 
+            @click="toggleFavorite" 
+            class="favorite-btn" 
+            :class="{ active: isFavorited }"
+          >
+            <span class="heart-icon">{{ isFavorited ? '❤️' : '🤍' }}</span>
+            {{ isFavorited ? '내 영화에서 제거' : '내 영화에 추가' }}
           </button>
         </div>
       </div>
@@ -285,6 +338,38 @@ watch(movieId, async (newId) => {
   background-color: #1ed760;
   transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(29, 185, 84, 0.5);
+}
+
+/* 좋아요 버튼 스타일 */
+.favorite-btn {
+  margin-top: 40px;
+  margin-left: 15px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 16px 32px;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.favorite-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
+  border-color: #ff4757;
+}
+
+.favorite-btn.active {
+  background-color: rgba(255, 71, 87, 0.1);
+  border-color: #ff4757;
+  color: #ff4757;
+}
+
+.heart-icon {
+  margin-right: 8px;
+  font-size: 1.2rem;
 }
 
 /* 예고편 섹션 */
