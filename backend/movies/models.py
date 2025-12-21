@@ -12,6 +12,7 @@ class Movie(models.Model):
     title = models.CharField(max_length=200)
     original_title = models.CharField(max_length=200)
     overview = models.TextField(blank=True)
+    catchphrase = models.TextField(blank=True)  # AI Catchphrase
     release_date = models.DateField(null=True, blank=True)
 
     poster_path = models.CharField(max_length=200, blank=True)

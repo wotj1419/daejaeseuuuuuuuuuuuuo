@@ -7,6 +7,8 @@ import CommunityView from '@/views/CommunityView.vue'
 import PostCreateView from '@/views/PostCreateView.vue'
 import PostDetailView from '@/views/PostDetailView.vue'
 import ProfileView from '@/views/ProfileView.vue'
+import MyMoviesView from '@/views/MyMoviesView.vue'
+import MyReviewsView from '@/views/MyReviewsView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
@@ -30,6 +32,10 @@ const router = createRouter({
     { path: '/posts/:id', name: 'postDetail', component: PostDetailView, props: true },
 
     { path: '/profile', name: 'profile', component: ProfileView },
+
+    // 내 영화 / 내 글
+    { path: '/my-movies', name: 'myMovies', component: MyMoviesView },
+    { path: '/my-reviews', name: 'myReviews', component: MyReviewsView },
 
     // Auth
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },

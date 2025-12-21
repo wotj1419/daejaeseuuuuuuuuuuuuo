@@ -6,6 +6,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
     movie = serializers.PrimaryKeyRelatedField(read_only=True)
     username = serializers.SerializerMethodField()
+    movie_title = serializers.SerializerMethodField()
 
     class Meta:
         model = Review
@@ -14,6 +15,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             'movie',
             'user',
             'username',
+            'movie_title',
             'content',
             'rating',
             'created_at',
@@ -25,3 +27,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         if obj.user:
             return obj.user.username
         return '익명'
+
+    def get_movie_title(self, obj):
+        return obj.movie.title
