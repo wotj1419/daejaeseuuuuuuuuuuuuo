@@ -97,41 +97,48 @@ function resetHeroToDefault() {
   startHeroLoop()
 }
 
-async function fetchHeroMovies() {
 /**
  * 영화 목록을 불러오고 각 영화의 예고편 및 좋아요 상태 정보를 가져옵니다.
  */
-async function fetchPopularMovies() {
+async function fetchHeroMovies() {
   try {
     const { data } = await moviesApi.list()
-    popularMovies.value = data.slice(0, 10) // 상위 10개만 표시
-    
-    popularMovies.value.forEach(async (movie) => {
-      // 1. 예고편 가져오기
-      try {
-        const response = await moviesApi.trailer(movie.tmdb_id)
-        if (response.data && response.data.trailer) {
-          trailers.value[movie.tmdb_id] = `${response.data.trailer}?autoplay=1&mute=1&controls=0&loop=1&playlist=${response.data.trailer.split('/').pop()}&rel=0&showinfo=0`
-        }
-      } catch (err) {
-        console.warn(`${movie.title}의 예고편을 가져오는데 실패했습니다.`)
-      }
 
-      // 2. 좋아요 상태 가져오기 (로그인 시)
-      if (authStore.isAuthenticated) {
-        try {
-          const { data: statusData } = await favoritesApi.checkFavoriteStatus(movie.tmdb_id)
-          favoriteStatuses.value[movie.tmdb_id] = statusData.is_favorited
-        } catch (err) {
-          console.error('좋아요 상태 확인 실패:', err)
-        }
-      }
-    })
+    // 인기 영화 10개
     popularMovies.value = data.slice(0, 10)
+
+    // 예고편 + 좋아요 상태 가져오기
+    await Promise.all(
+      popularMovies.value.map(async (movie) => {
+        // 1) 예고편
+        try {
+          const response = await moviesApi.trailer(movie.tmdb_id)
+          if (response.data?.trailer) {
+            const trailer = response.data.trailer
+            trailers.value[movie.tmdb_id] =
+              `${trailer}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailer.split('/').pop()}&rel=0&showinfo=0`
+          }
+        } catch (err) {
+          console.warn(`${movie.title}의 예고편 로드 실패`)
+        }
+
+        // 2) 좋아요 상태(로그인 시)
+        if (authStore.isAuthenticated) {
+          try {
+            const { data: statusData } = await favoritesApi.checkFavoriteStatus(movie.tmdb_id)
+            favoriteStatuses.value[movie.tmdb_id] = statusData.is_favorited
+          } catch (err) {
+            console.error('좋아요 상태 확인 실패:', err)
+          }
+        }
+      })
+    )
+
+    // 히어로 후보 8개 적용
     const candidates = data.slice(0, 8)
     await applyHeroCandidates(candidates, { recordDefault: true })
   } catch (e) {
-    console.error('홈 예고편 불러오는 중 오류:', e)
+    console.error('홈 예고편/영화 불러오는 중 오류:', e)
   }
 }
 
@@ -237,27 +244,6 @@ async function searchMovies() {
         document.querySelector('.content-section')?.scrollIntoView({ behavior: 'smooth' })
       }, 100)
     }
-  }
-}
-
-async function toggleFavorite(movieId, event) {
-  if (event) {
-    event.stopPropagation()
-  }
-
-  if (!authStore.isAuthenticated) {
-    const confirmLogin = confirm('로그인이 필요한 기능입니다. 로그인 페이지로 이동하시겠습니까?')
-    if (confirmLogin) {
-      router.push({ name: 'login' })
-    }
-    return
-  }
-
-  try {
-    const { data } = await favoritesApi.toggleFavorite(movieId)
-    favoriteStatuses.value[movieId] = data.is_favorited
-  } catch (err) {
-    console.error('좋아요 토글 실패:', err)
   }
 }
 
