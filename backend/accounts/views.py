@@ -1,11 +1,21 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import permissions, status
+from rest_framework import permissions, status, serializers
+from django.conf import settings
 from django.shortcuts import get_object_or_404
+import requests
+from .models import User
 from movies.models import Movie
 from movies.serializers import MovieListSerializer
 from reviews.models import Review
 from reviews.serializers import ReviewSerializer
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'bio', 'favorite_movie_name')
+        read_only_fields = ('username',)
 
 
 class FavoriteMovieToggleView(APIView):
@@ -88,10 +98,29 @@ class FavoriteMovieToggleView(APIView):
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+class ProfileView(APIView):
+    """현재 로그인한 유저의 프로필 정보"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserProfileSerializer(request.user)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        serializer = UserProfileSerializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class MyFavoriteMoviesView(APIView):
@@ -103,6 +132,21 @@ class MyFavoriteMoviesView(APIView):
         favorite_movies = user.favorite_movies.all().order_by('-id')
         serializer = MovieListSerializer(favorite_movies, many=True)
         return Response(serializer.data)
+
+
+class UserFavoriteMoviesView(APIView):
+    """특정 유저가 좋아요한 영화 목록"""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, username):
+        user = get_object_or_404(User, username=username)
+        favorite_movies = user.favorite_movies.all().order_by('-id')
+        serializer = MovieListSerializer(favorite_movies, many=True)
+        profile_data = UserProfileSerializer(user).data
+        return Response({
+            'profile': profile_data,
+            'movies': serializer.data,
+        })
 
 
 class MyReviewsView(APIView):

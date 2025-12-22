@@ -1,24 +1,60 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { moviesApi } from '@/api/movies'
+import { useAuthStore } from '@/stores/auth'
+import { accountsApi } from '@/api/accounts'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
-// 로컬 프로필(임시) - 백엔드 accounts API 붙이면 여기만 교체하면 됨
-const nickname = ref(localStorage.getItem('profile_nickname') || 'Guest')
-const bio = ref(localStorage.getItem('profile_bio') || '')
-const favoriteMovieName = ref(localStorage.getItem('profile_fav_movieName') || '')
-
+const bio = ref('')
+const favoriteMovieName = ref('')
 const savedMessage = ref('')
+const profileError = ref('')
 const searchLoading = ref(false)
 
-function saveProfile() {
-  localStorage.setItem('profile_nickname', nickname.value)
-  localStorage.setItem('profile_bio', bio.value)
-  localStorage.setItem('profile_fav_movieName', favoriteMovieName.value)
-  savedMessage.value = '저장 완료!'
-  setTimeout(() => (savedMessage.value = ''), 1200)
+async function loadProfile() {
+  if (!authStore.isAuthenticated) {
+    bio.value = ''
+    favoriteMovieName.value = ''
+    profileError.value = ''
+    return
+  }
+
+  try {
+    const { data } = await accountsApi.getProfile()
+    bio.value = data.bio || ''
+    favoriteMovieName.value = data.favorite_movie_name || ''
+    profileError.value = ''
+  } catch (error) {
+    console.error('프로필 데이터를 불러오지 못했습니다', error)
+    profileError.value = '프로필 정보를 불러오는 중 오류가 발생했습니다.'
+    bio.value = ''
+    favoriteMovieName.value = ''
+  }
+}
+
+watch(() => authStore.user?.username, loadProfile, { immediate: true })
+
+async function saveProfile() {
+  if (!authStore.isAuthenticated) {
+    alert('로그인 후에 프로필 정보를 저장할 수 있습니다.')
+    return
+  }
+
+  try {
+    await accountsApi.updateProfile({
+      bio: bio.value,
+      favorite_movie_name: favoriteMovieName.value,
+    })
+    savedMessage.value = '저장 완료!'
+    setTimeout(() => (savedMessage.value = ''), 1200)
+    profileError.value = ''
+  } catch (error) {
+    console.error('프로필 저장 오류', error)
+    profileError.value = '프로필 저장에 실패했습니다. 다시 시도해주세요.'
+  }
 }
 
 // 영화 이름으로 검색하여 tmdb_id를 찾는 함수
@@ -62,7 +98,7 @@ async function goFavCommunity() {
   }
 }
 
-const displayName = computed(() => (nickname.value?.trim() ? nickname.value : 'Guest'))
+const displayName = computed(() => authStore.user?.username || 'Guest')
 </script>
 
 <template>
@@ -75,19 +111,14 @@ const displayName = computed(() => (nickname.value?.trim() ? nickname.value : 'G
       <p class="profile-welcome">취향을 담은 나만의 프로필을 꾸며보세요 🎞️</p>
     </div>
 
+    <div v-if="profileError" class="error-message">{{ profileError }}</div>
+
     <div class="profile-grid">
       <!-- ✏️ 기본 정보 설정 섹션 -->
       <section class="profile-card settings-card">
         <div class="card-header">
           <span class="card-icon">👤</span>
           <h3>기본 정보</h3>
-        </div>
-
-        <div class="form-group">
-          <label>닉네임</label>
-          <div class="input-wrapper">
-            <input v-model="nickname" placeholder="멋진 닉네임을 입력하세요" />
-          </div>
         </div>
 
         <div class="form-group">

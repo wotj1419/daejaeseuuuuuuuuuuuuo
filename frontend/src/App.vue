@@ -39,7 +39,7 @@ onBeforeUnmount(() => {
     <RouterLink class="logo" to="/">MovieMate</RouterLink>
     <RouterLink class="link" to="/">홈</RouterLink>
     <RouterLink class="link" to="/movies">영화</RouterLink>
-    <RouterLink class="link" to="/movie-share">영화 공유</RouterLink>
+    <RouterLink class="link" to="/movie-share">프로필 공유</RouterLink>
 
     <!-- 로그인 상태 -->
     <div v-if="authStore.isAuthenticated" class="auth-links">

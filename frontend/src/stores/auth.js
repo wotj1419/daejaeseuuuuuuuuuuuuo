@@ -5,6 +5,11 @@ import axios from 'axios'
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('token'))
     const user = ref(null)
+    const storedProfileOwner = localStorage.getItem('profile_owner')
+
+    if (token.value && storedProfileOwner) {
+        user.value = { username: storedProfileOwner }
+    }
 
     const isAuthenticated = computed(() => !!token.value)
 
@@ -30,6 +35,8 @@ export const useAuthStore = defineStore('auth', () => {
         const newToken = res.data.key
         token.value = newToken
         localStorage.setItem('token', newToken)
+        localStorage.setItem('profile_owner', username)
+        user.value = { username }
 
         // 유저 정보 가져오기 (선택)
         // await fetchUser()
@@ -46,6 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
         token.value = null
         user.value = null
         localStorage.removeItem('token')
+        localStorage.removeItem('profile_owner')
     }
 
     return { token, user, isAuthenticated, signup, login, logout }

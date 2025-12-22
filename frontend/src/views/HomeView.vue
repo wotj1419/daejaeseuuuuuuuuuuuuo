@@ -217,13 +217,11 @@ async function searchMovies() {
       }
     } else {
       const { data } = await moviesApi.search(query)
-      const normalized = (data.results || [])
-        .map(normalizeMovie)
-        .filter(Boolean)
-      searchResults.value = normalized
-      totalResults.value = data.total_results || normalized.length
+      const results = data.results || []
+      searchResults.value = results
+      totalResults.value = data.total_results || results.length
       aiResult.value = ''
-      if (!normalized.length) {
+      if (!results.length) {
         error.value = '검색 결과가 없습니다.'
       }
       resetHeroToDefault()
@@ -376,7 +374,8 @@ onUnmounted(() => {
               @click="isAiMode = true"
             >
               <span>✨ </span>
-              MovieMate에게 추천 받기
+              MovieMate에게 추
+              천 받기
             </button>
           </div>
           <div class="search-box">
