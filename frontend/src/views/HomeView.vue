@@ -160,16 +160,15 @@ function clearHeroLoop() {
 
 const currentHero = computed(() => heroMovies.value[currentHeroIndex.value] || popularMovies.value[0] || null)
 const heroHookLines = computed(() => {
-  const title = currentHero.value?.title || ' ȭ'
-  const overview = (currentHero.value?.overview || '').replace(/\s+/g, ' ').trim()
-  const snippet = overview
-    ? (overview.length > 160 ? `${overview.slice(0, 160)}...` : overview)
-    : 'ݺ    ̾߱Ⱑ ϴ.'
+  const title = currentHero.value?.title
+  const primaryLine = title
+    ? `지금 많은 사람이 "${title}"을(를) 보고 싶어해요.`
+    : '지금 가장 사랑받는 영화를 만나보세요.'
+  const secondaryLine = title
+    ? '예고편으로 무비메이트가 엄선한 매력을 확인해보세요.'
+    : 'MovieMate가 골라낸 추천을 지금 재생해보세요.'
 
-  const line1 = `${title}   ?`
-  const line2 = `${snippet}   ʹٸ  Ȯغ?`
-
-  return [line1, line2]
+  return title ? [primaryLine, secondaryLine] : [primaryLine]
 })
 
 /**
@@ -367,7 +366,7 @@ onUnmounted(() => {
               :class="{ active: !isAiMode }"
               @click="isAiMode = false"
             >
-              <span>🪐 일반 검색</span>
+              <span>🪐 </span>
               직접 키워드 검색
             </button>
             <button
@@ -376,7 +375,7 @@ onUnmounted(() => {
               :class="{ active: isAiMode }"
               @click="isAiMode = true"
             >
-              <span>✨ AI 영화 추천</span>
+              <span>✨ </span>
               MovieMate에게 추천 받기
             </button>
           </div>
@@ -471,15 +470,19 @@ onUnmounted(() => {
 .video-layer,
 .video-fallback {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.video-layer {
+  z-index: 0;
 }
 
 .video-layer iframe {
   width: 100%;
   height: 100%;
-  z-index: 1;
+  pointer-events: none;
 }
 
 /* 비디오 컨테이너 스타일: 화면을 꽉 채우도록 설정 */
@@ -505,12 +508,6 @@ onUnmounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-}
-
-.video-layer iframe {
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
 }
 
 .video-fallback {
@@ -571,6 +568,7 @@ onUnmounted(() => {
 .hero-subtitle-line {
   display: block;
   font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .hero-actions {
