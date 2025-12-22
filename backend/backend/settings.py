@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'movies',
     'reviews',
     'data',
+    'boards',
 ]
 
 MIDDLEWARE = [

@@ -18,6 +18,31 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ('username',)
 
 
+class FriendSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'bio', 'favorite_movie_name')
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    is_friend = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('username', 'bio', 'favorite_movie_name', 'is_friend')
+
+    def get_is_friend(self, obj):
+        friend_ids = self.context.get('friend_ids')
+        if friend_ids is not None:
+            return obj.pk in friend_ids
+
+        request = self.context.get('request')
+        user = getattr(request, 'user', None) if request else None
+        if user and user.is_authenticated:
+            return user.friends.filter(pk=obj.pk).exists()
+        return False
+
+
 class FavoriteMovieToggleView(APIView):
     """영화 좋아요 토글 (추가/제거)"""
     permission_classes = [permissions.IsAuthenticated]
@@ -146,6 +171,61 @@ class UserFavoriteMoviesView(APIView):
         return Response({
             'profile': profile_data,
             'movies': serializer.data,
+        })
+
+
+class MyFriendsListView(APIView):
+    """현재 유저의 친구 목록"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        friends = request.user.friends.all().order_by('username')
+        serializer = FriendSerializer(friends, many=True)
+        return Response(serializer.data)
+
+
+class UserListView(APIView):
+    """전체 사용자 목록 (친구 추가용)"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        users = User.objects.exclude(pk=request.user.pk).order_by('username')
+        friend_ids = set(request.user.friends.values_list('pk', flat=True))
+        serializer = UserListSerializer(
+            users,
+            many=True,
+            context={'request': request, 'friend_ids': friend_ids}
+        )
+        return Response(serializer.data)
+
+
+class FriendToggleView(APIView):
+    """친구 등록/삭제 토글"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, username):
+        target_user = get_object_or_404(User, username=username)
+
+        if target_user == request.user:
+            return Response(
+                {'error': '본인은 친구로 추가할 수 없습니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = request.user
+        if target_user in user.friends.all():
+            user.friends.remove(target_user)
+            is_friend = False
+            message = '친구 목록에서 제거되었습니다.'
+        else:
+            user.friends.add(target_user)
+            is_friend = True
+            message = '친구로 등록되었습니다.'
+
+        return Response({
+            'username': target_user.username,
+            'is_friend': is_friend,
+            'message': message,
         })
 
 

@@ -5,6 +5,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const authStore = useAuthStore()
 const showDropdown = ref(false)
+const showBoardMenu = ref(false)
 
 function toggleDropdown() {
   showDropdown.value = !showDropdown.value
@@ -15,13 +16,31 @@ function closeDropdown() {
 }
 
 // 외부 클릭 감지
+function toggleBoardMenu(event) {
+  event.stopPropagation()
+  showBoardMenu.value = !showBoardMenu.value
+}
+
+function closeBoardMenu() {
+  showBoardMenu.value = false
+}
+
 function handleClickOutside(event) {
   const dropdown = document.querySelector('.profile-dropdown')
   const profileBtn = document.querySelector('.profile-btn')
+  const boardDropdown = document.querySelector('.board-dropdown')
+  const boardBtn = document.querySelector('.board-link')
 
-  if (!profileBtn) return
-  if (dropdown && !dropdown.contains(event.target) && !profileBtn.contains(event.target)) {
-    closeDropdown()
+  if (dropdown && profileBtn && showDropdown.value) {
+    if (!dropdown.contains(event.target) && !profileBtn.contains(event.target)) {
+      closeDropdown()
+    }
+  }
+
+  if (boardDropdown && boardBtn && showBoardMenu.value) {
+    if (!boardDropdown.contains(event.target) && !boardBtn.contains(event.target)) {
+      closeBoardMenu()
+    }
   }
 }
 
@@ -40,6 +59,19 @@ onBeforeUnmount(() => {
     <RouterLink class="link" to="/">홈</RouterLink>
     <RouterLink class="link" to="/movies">영화</RouterLink>
     <RouterLink class="link" to="/movie-share">프로필 공유</RouterLink>
+    <div class="board-wrapper">
+      <button type="button" class="board-link" @click="toggleBoardMenu">
+        게시판
+      </button>
+      <div v-if="showBoardMenu" class="board-dropdown profile-dropdown">
+        <RouterLink class="dropdown-item" to="/boards/free" @click="closeBoardMenu">
+          자유게시판
+        </RouterLink>
+        <RouterLink class="dropdown-item" to="/boards/friend" @click="closeBoardMenu">
+          친구게시판
+        </RouterLink>
+      </div>
+    </div>
 
     <!-- 로그인 상태 -->
     <div v-if="authStore.isAuthenticated" class="auth-links">
@@ -54,14 +86,17 @@ onBeforeUnmount(() => {
         </button>
 
         <div v-if="showDropdown" class="profile-dropdown">
-          <RouterLink class="dropdown-item" to="/my-movies" @click="closeDropdown">
+        <RouterLink class="dropdown-item" to="/my-movies" @click="closeDropdown">
             내 영화
-          </RouterLink>
-          <RouterLink class="dropdown-item" to="/my-reviews" @click="closeDropdown">
+        </RouterLink>
+        <RouterLink class="dropdown-item" to="/my-reviews" @click="closeDropdown">
             내 리뷰
-          </RouterLink>
+        </RouterLink>
+        <RouterLink class="dropdown-item" to="/my-friends" @click="closeDropdown">
+          내 친구
+        </RouterLink>
 
-          <div class="dropdown-divider"></div>
+        <div class="dropdown-divider"></div>
 
           <RouterLink class="dropdown-item" to="/profile" @click="closeDropdown">
             프로필 수정
@@ -85,6 +120,17 @@ onBeforeUnmount(() => {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
+:root {
+  --base-color: #37664b;
+  --base-color-dark: #273a34;
+  --base-color-light: #4f9171;
+  --base-background: #030303;
+  --base-card: #0d0d0d;
+  --base-border: #1c1c1c;
+  --text-color: #ffffff;
+  --muted-text: rgba(255, 255, 255, 0.7);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -92,15 +138,15 @@ onBeforeUnmount(() => {
 }
 
 body {
-  background-color: #000000;
-  color: #ffffff;
+  background-color: var(--base-background);
+  color: var(--text-color);
   font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   min-height: 100vh;
 }
 
 #app {
   min-height: 100vh;
-  background-color: #000000;
+  background-color: var(--base-background);
 }
 </style>
 
@@ -109,18 +155,18 @@ body {
   display: flex;
   gap: 24px;
   padding: 16px 50px;
-  background-color: #000000;
+  background-color: var(--base-card);
   align-items: center;
   position: sticky;
   top: 0;
   z-index: 100;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--base-border);
 }
 
 .logo {
   font-size: 28px;
   font-weight: 700;
-  color: #1DB954;
+  color: var(--base-color);
   margin-right: 20px;
   letter-spacing: -0.5px;
   text-decoration: none;
@@ -136,19 +182,43 @@ body {
 .link,
 .logout-link {
   text-decoration: none;
-  color: #e5e5e5;
+  color: var(--muted-text);
   font-size: 15px;
   font-weight: 500;
   transition: color 0.3s ease;
 }
 
+.board-wrapper {
+  position: relative;
+}
+
+.board-link {
+  background: transparent;
+  border: none;
+  color: var(--muted-text);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.board-link:hover {
+  color: var(--base-color-light);
+}
+
+.board-dropdown {
+  right: 0;
+  top: calc(100% + 12px);
+  width: 160px;
+  padding: 8px 0;
+}
+
 .link:hover,
 .logout-link:hover {
-  color: #1DB954;
+  color: var(--base-color-light);
 }
 
 .link.router-link-active {
-  color: #1DB954;
+  color: var(--base-color);
   font-weight: 700;
 }
 
@@ -192,6 +262,7 @@ body {
 .username-text {
   font-size: 15px;
   font-weight: 600;
+  color: #fff;
 }
 
 .profile-dropdown {

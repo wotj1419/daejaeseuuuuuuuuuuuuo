@@ -7,5 +7,10 @@ class User(AbstractUser):
         related_name='favorited_by',
         blank=True
     )
+    friends = models.ManyToManyField(
+        'self',
+        symmetrical=True,
+        blank=True
+    )
     bio = models.TextField(blank=True, default='')
     favorite_movie_name = models.CharField(max_length=255, blank=True, default='')

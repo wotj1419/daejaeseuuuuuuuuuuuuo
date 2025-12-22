@@ -374,8 +374,7 @@ onUnmounted(() => {
               @click="isAiMode = true"
             >
               <span>✨ </span>
-              MovieMate에게 추
-              천 받기
+              MovieMate에게 추천 받기
             </button>
           </div>
           <div class="search-box">

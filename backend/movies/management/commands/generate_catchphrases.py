@@ -41,25 +41,41 @@ class Command(BaseCommand):
                 }]
             }
 
-            try:
-                response = requests.post(url, headers=headers, json=payload, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    candidates = data.get('candidates', [])
-                    if candidates:
-                        text = candidates[0].get('content', {}).get('parts', [{}])[0].get('text', '').strip()
-                        # Clean up
-                        text = text.replace('"', '').replace("'", "")
-                        movie.catchphrase = text
-                        movie.save()
-                        self.stdout.write(self.style.SUCCESS(f' -> {text}'))
+            # Retry logic: 네트워크 문제나 일시적 에러에 대비해 재시도와 지수 백오프 추가
+            max_retries = 3
+            for attempt in range(1, max_retries + 1):
+                try:
+                    response = requests.post(url, headers=headers, json=payload, timeout=20)
+                    if response.status_code == 200:
+                        data = response.json()
+                        candidates = data.get('candidates', [])
+                        if candidates:
+                            text = candidates[0].get('content', {}).get('parts', [{}])[0].get('text', '').strip()
+                            # Clean up
+                            text = text.replace('"', '').replace("'", "")
+                            movie.catchphrase = text
+                            movie.save()
+                            self.stdout.write(self.style.SUCCESS(f' -> {text}'))
+                        else:
+                            self.stdout.write(self.style.WARNING(' -> No candidate returned'))
+                        break
                     else:
-                        self.stdout.write(self.style.WARNING(' -> No candidate returned'))
-                else:
-                    self.stdout.write(self.style.ERROR(f' -> API Error {response.status_code}'))
-            
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f' -> Exception: {e}'))
-            
-            # Rate limiting avoidance?
-            # time.sleep(0.5) 
+                        self.stdout.write(self.style.ERROR(f' -> API Error {response.status_code}'))
+                        # 비정상 응답일 경우 재시도 여부 판단 (여기서는 반복 종료)
+                        break
+
+                except requests.exceptions.RequestException as e:
+                    self.stdout.write(self.style.ERROR(f' -> Request exception (attempt {attempt}): {e}'))
+                    if attempt < max_retries:
+                        backoff = 1 * attempt
+                        time.sleep(backoff)
+                        continue
+                    else:
+                        # 마지막 시도에서도 실패하면 로깅 후 다음 영화로 진행
+                        break
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f' -> Exception: {e}'))
+                    break
+
+            # 각 요청 사이에 짧은 대기시간을 두어 rate-limit 회피
+            time.sleep(0.5)

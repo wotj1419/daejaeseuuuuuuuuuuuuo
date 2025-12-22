@@ -3,7 +3,10 @@ from .views import (
     FavoriteMovieToggleView,
     ProfileView,
     MyFavoriteMoviesView,
+    MyFriendsListView,
     MyReviewsView,
+    UserListView,
+    FriendToggleView,
     CheckFavoriteStatusView,
     UserFavoriteMoviesView,
 )
@@ -15,4 +18,7 @@ urlpatterns = [
     path('users/<str:username>/favorites/', UserFavoriteMoviesView.as_view()),
     path('profile/', ProfileView.as_view()),
     path('my-reviews/', MyReviewsView.as_view()),
+    path('friends/', MyFriendsListView.as_view()),
+    path('users/', UserListView.as_view()),
+    path('friends/<str:username>/toggle/', FriendToggleView.as_view()),
 ]

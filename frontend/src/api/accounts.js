@@ -7,4 +7,13 @@ export const accountsApi = {
   updateProfile(payload) {
     return http.patch('/accounts/profile/', payload)
   },
+  getFriends() {
+    return http.get('/accounts/friends/')
+  },
+  getUsers() {
+    return http.get('/accounts/users/')
+  },
+  toggleFriend(username) {
+    return http.post(`/accounts/friends/${username}/toggle/`)
+  },
 }

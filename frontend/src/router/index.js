@@ -9,7 +9,10 @@ import PostDetailView from '@/views/PostDetailView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import MyMoviesView from '@/views/MyMoviesView.vue'
 import MyReviewsView from '@/views/MyReviewsView.vue'
+import MyFriendsView from '@/views/MyFriendsView.vue'
 import MovieShareView from '@/views/MovieShareView.vue'
+import FreeBoardView from '@/views/FreeBoardView.vue'
+import FriendBoardView from '@/views/FriendBoardView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
@@ -38,6 +41,10 @@ const router = createRouter({
     // 내 영화 / 내 글
     { path: '/my-movies', name: 'myMovies', component: MyMoviesView },
     { path: '/my-reviews', name: 'myReviews', component: MyReviewsView },
+    { path: '/my-friends', name: 'myFriends', component: MyFriendsView },
+    { path: '/boards', redirect: { name: 'freeBoard' } },
+    { path: '/boards/free', name: 'freeBoard', component: FreeBoardView },
+    { path: '/boards/friend', name: 'friendBoard', component: FriendBoardView },
 
     // Auth
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
