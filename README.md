@@ -15,6 +15,7 @@ venv\Scripts\activate         # cmd/powershell 사용 시
 pip install -r requirements.txt
 
 # 4. 환경 변수 설정 (.env 파일 생성)
+touch .env
 # .env.example 파일을 복사하여 .env 파일을 만들고 키를 입력하세요.
 cp .env.example .env
 # .env 내부 내용 수정:
@@ -47,3 +48,7 @@ npm run dev
 ```
 
 ---
+
+### 4. 브랜치 이동
+
+git switch 브랜치이름

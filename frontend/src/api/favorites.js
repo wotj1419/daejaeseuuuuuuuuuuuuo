@@ -20,4 +20,10 @@ export const favoritesApi = {
   getMyReviews() {
     return http.get('/accounts/my-reviews/')
   },
+
+
+  // 다른 유저가 좋아요한 영화
+  getUserFavorites(username) {
+    return http.get(`/accounts/users/${encodeURIComponent(username)}/favorites/`)
+  },
 }

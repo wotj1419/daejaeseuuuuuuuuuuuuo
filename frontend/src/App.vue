@@ -18,7 +18,8 @@ function closeDropdown() {
 function handleClickOutside(event) {
   const dropdown = document.querySelector('.profile-dropdown')
   const profileBtn = document.querySelector('.profile-btn')
-  
+
+  if (!profileBtn) return
   if (dropdown && !dropdown.contains(event.target) && !profileBtn.contains(event.target)) {
     closeDropdown()
   }
@@ -38,35 +39,41 @@ onBeforeUnmount(() => {
     <RouterLink class="logo" to="/">MovieMate</RouterLink>
     <RouterLink class="link" to="/">홈</RouterLink>
     <RouterLink class="link" to="/movies">영화</RouterLink>
-    
+    <RouterLink class="link" to="/movie-share">프로필 공유</RouterLink>
+
+    <!-- 로그인 상태 -->
     <div v-if="authStore.isAuthenticated" class="auth-links">
+      <a href="#" class="logout-link" @click.prevent="authStore.logout">로그아웃</a>
+
       <div class="profile-wrapper">
-        <button class="profile-btn" @click="toggleDropdown">
+        <button type="button" class="profile-btn" @click="toggleDropdown">
           <div class="avatar">
             {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
           </div>
           <span class="username-text">{{ authStore.user?.username }}</span>
         </button>
-        
+
         <div v-if="showDropdown" class="profile-dropdown">
           <RouterLink class="dropdown-item" to="/my-movies" @click="closeDropdown">
-            ⭐ 내 영화
+            내 영화
           </RouterLink>
           <RouterLink class="dropdown-item" to="/my-reviews" @click="closeDropdown">
-            📝 내 글
+            내 리뷰
           </RouterLink>
+
           <div class="dropdown-divider"></div>
+
           <RouterLink class="dropdown-item" to="/profile" @click="closeDropdown">
-            ⚙️ 프로필 설정
+            프로필 수정
           </RouterLink>
         </div>
       </div>
-      
-      <a href="#" class="logout-link" @click.prevent="authStore.logout">로그아웃</a>
     </div>
+
+    <!-- 비로그인 상태 -->
     <div v-else class="auth-links">
-       <RouterLink class="link" to="/login">로그인</RouterLink>
-       <RouterLink class="link" to="/signup">회원가입</RouterLink>
+      <RouterLink class="link" to="/login">로그인</RouterLink>
+      <RouterLink class="link" to="/signup">회원가입</RouterLink>
     </div>
   </header>
 
@@ -126,16 +133,17 @@ body {
   align-items: center;
 }
 
-.link, .logout-link {
+.link,
+.logout-link {
   text-decoration: none;
   color: #e5e5e5;
   font-size: 15px;
   font-weight: 500;
   transition: color 0.3s ease;
-  position: relative;
 }
 
-.link:hover, .logout-link:hover {
+.link:hover,
+.logout-link:hover {
   color: #1DB954;
 }
 
@@ -145,10 +153,6 @@ body {
 }
 
 .wrap {
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: #000000;
   min-height: calc(100vh - 70px);
 }
 
@@ -164,9 +168,8 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px;
+  padding: 4px 8px;
   border-radius: 30px;
-  transition: all 0.3s ease;
 }
 
 .profile-btn:hover {
@@ -184,14 +187,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 10px rgba(29, 185, 84, 0.3);
 }
 
 .username-text {
-  color: #ffffff;
   font-size: 15px;
   font-weight: 600;
-  margin-right: 4px;
 }
 
 .profile-dropdown {
@@ -203,16 +203,8 @@ body {
   border: 1px solid #333;
   border-radius: 12px;
   width: 200px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   padding: 8px 0;
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
-  transform-origin: top right;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
 }
 
 .dropdown-item {
@@ -221,13 +213,11 @@ body {
   color: #e5e5e5;
   text-decoration: none;
   font-size: 14px;
-  transition: all 0.2s ease;
 }
 
 .dropdown-item:hover {
   background-color: #333;
   color: #1DB954;
-  padding-left: 24px;
 }
 
 .dropdown-divider {
