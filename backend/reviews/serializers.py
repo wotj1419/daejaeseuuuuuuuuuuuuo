@@ -7,6 +7,8 @@ class ReviewSerializer(serializers.ModelSerializer):
     movie = serializers.PrimaryKeyRelatedField(read_only=True)
     username = serializers.SerializerMethodField()
     movie_title = serializers.SerializerMethodField()
+    movie_tmdb_id = serializers.SerializerMethodField()
+    movie_poster_path = serializers.SerializerMethodField()
 
     class Meta:
         model = Review
@@ -16,6 +18,8 @@ class ReviewSerializer(serializers.ModelSerializer):
             'user',
             'username',
             'movie_title',
+            'movie_tmdb_id',
+            'movie_poster_path',
             'content',
             'rating',
             'created_at',
@@ -30,3 +34,9 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def get_movie_title(self, obj):
         return obj.movie.title
+
+    def get_movie_tmdb_id(self, obj):
+        return getattr(obj.movie, 'tmdb_id', None)
+
+    def get_movie_poster_path(self, obj):
+        return getattr(obj.movie, 'poster_path', '')

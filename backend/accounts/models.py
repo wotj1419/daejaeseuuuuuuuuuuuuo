@@ -7,9 +7,10 @@ class User(AbstractUser):
         related_name='favorited_by',
         blank=True
     )
-    friends = models.ManyToManyField(
+    followings = models.ManyToManyField(
         'self',
-        symmetrical=True,
+        symmetrical=False,
+        related_name='followers',
         blank=True
     )
     bio = models.TextField(blank=True, default='')

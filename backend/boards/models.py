@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.db import models
+from common.models import TimeStampedModel
 
 
-class BoardPost(models.Model):
+class BoardPost(TimeStampedModel):
     BOARD_TYPE_FREE = 'free'
     BOARD_TYPE_FRIEND = 'friend'
     BOARD_CHOICES = [
@@ -28,8 +29,6 @@ class BoardPost(models.Model):
         blank=True,
         related_name='board_invitations',
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']

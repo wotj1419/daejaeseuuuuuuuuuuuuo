@@ -1,11 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { favoritesApi } from '@/api/favorites'
 import { moviesApi } from '@/api/movies'
+import { accountsApi } from '@/api/accounts'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+
 const searchUsername = ref(route.query.username || '')
 const favorites = ref([])
 const loading = ref(false)
@@ -15,6 +20,8 @@ const userProfile = ref(null)
 const lifeMovie = ref(null)
 const lifeMovieLoading = ref(false)
 const lifeMovieError = ref('')
+const followLoading = ref(false)
+const isFollowing = ref(false)
 
 function posterUrl(path) {
   if (!path) return ''
@@ -78,6 +85,7 @@ async function searchFavorites({ updateQuery = true } = {}) {
   lifeMovie.value = null
   lifeMovieError.value = ''
   userProfile.value = null
+  isFollowing.value = false
 
   try {
     const { data } = await favoritesApi.getUserFavorites(username)
@@ -90,6 +98,7 @@ async function searchFavorites({ updateQuery = true } = {}) {
       infoMessage.value = ''
     }
     await loadLifeMovie(userProfile.value?.favorite_movie_name)
+    await fetchFollowState()
   } catch (err) {
     console.error('유저 좋아요 목록 조회 실패:', err)
     if (err.response?.status === 404) {
@@ -104,6 +113,38 @@ async function searchFavorites({ updateQuery = true } = {}) {
     lifeMovieError.value = ''
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchFollowState() {
+  if (!isAuthenticated.value) return
+  if (!userProfile.value?.username) return
+  if (authStore.user?.username === userProfile.value.username) return
+  try {
+    const { data } = await accountsApi.getUsers()
+    const target = data.find((u) => u.username === userProfile.value.username)
+    isFollowing.value = !!target?.is_following
+  } catch (err) {
+    console.error('팔로우 상태 조회 실패', err)
+  }
+}
+
+async function toggleFollow() {
+  if (!userProfile.value?.username) return
+  if (!isAuthenticated.value) {
+    router.push({ name: 'login' })
+    return
+  }
+  if (authStore.user?.username === userProfile.value.username) return
+  followLoading.value = true
+  try {
+    await accountsApi.toggleFollow(userProfile.value.username)
+    isFollowing.value = !isFollowing.value
+  } catch (err) {
+    console.error('팔로우 토글 실패', err)
+    alert(err.response?.data?.error || '팔로우 처리 중 문제가 발생했습니다.')
+  } finally {
+    followLoading.value = false
   }
 }
 
@@ -134,10 +175,24 @@ onMounted(() => {
     </section>
 
     <div v-if="userProfile" class="share-profile">
-      <h2>{{ userProfile.username }}님의 인생 영화</h2>
-      <p class="life-movie">
-        {{ userProfile.favorite_movie_name || '등록된 인생 영화가 없습니다.' }}
-      </p>
+      <div class="life-header">
+        <div>
+          <h2>{{ userProfile.username }}님의 인생 영화</h2>
+          <p class="life-movie">
+            {{ userProfile.favorite_movie_name || '등록된 인생 영화가 없습니다.' }}
+          </p>
+        </div>
+        <button
+          v-if="authStore.user?.username !== userProfile.username"
+          class="follow-btn"
+          :class="{ active: isFollowing }"
+          :disabled="followLoading"
+          @click="toggleFollow"
+        >
+          <span v-if="followLoading">처리 중...</span>
+          <span v-else>{{ isFollowing ? '팔로우 취소' : '팔로우' }}</span>
+        </button>
+      </div>
 
       <div v-if="lifeMovie" class="life-movie-card" @click="goToMovieDetail(lifeMovie.tmdb_id)">
         <div class="life-movie-poster">
@@ -240,10 +295,17 @@ onMounted(() => {
   margin-bottom: 6px;
 }
 
+.life-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .life-movie {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #1db954;
+  color: #4f9171;
   margin: 0 0 6px;
 }
 
@@ -266,7 +328,7 @@ onMounted(() => {
 
 .life-movie-card:hover {
   transform: translateY(-4px);
-  border-color: #1db954;
+  border-color: #4f9171;
 }
 
 .life-movie-poster {
@@ -363,8 +425,8 @@ onMounted(() => {
   border: none;
   border-radius: 999px;
   padding: 0 32px;
-  background: #1db954;
-  color: #000;
+  background: #37664b;
+  color: #f6f6f6;
   font-weight: 700;
   cursor: pointer;
 }
@@ -409,7 +471,7 @@ onMounted(() => {
 .movie-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-  border-color: #1db954;
+  border-color: #4f9171;
 }
 
 .poster {
@@ -452,7 +514,30 @@ onMounted(() => {
 
 .reason {
   font-size: 0.85rem;
-  color: #a8e8ff;
+  color: #9ed3b4;
+}
+
+.follow-btn {
+  min-width: 120px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #2d4d3a;
+  color: #f1f1f1;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.follow-btn.active {
+  background: #4f9171;
+  border-color: #4f9171;
+  color: #06110c;
+}
+
+.follow-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

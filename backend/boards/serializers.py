@@ -46,10 +46,10 @@ class BoardPostSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             raise serializers.ValidationError('로그인이 필요합니다.')
 
-        friend_ids = set(user.friends.values_list('pk', flat=True))
+        following_ids = set(user.followings.values_list('pk', flat=True))
         for invited_user in value:
-            if invited_user.pk not in friend_ids:
-                raise serializers.ValidationError(f'{invited_user.username}님은 친구가 아닙니다.')
+            if invited_user.pk not in following_ids:
+                raise serializers.ValidationError(f'{invited_user.username}님은 팔로잉 중인 사용자만 초대할 수 있습니다.')
         return value
 
     def create(self, validated_data):

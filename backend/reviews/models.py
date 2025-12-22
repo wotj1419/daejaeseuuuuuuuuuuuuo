@@ -1,11 +1,12 @@
 from django.db import models
 from django.conf import settings
 from movies.models import Movie
+from common.models import TimeStampedModel
 
 User = settings.AUTH_USER_MODEL
 
 
-class Review(models.Model):
+class Review(TimeStampedModel):
     movie = models.ForeignKey(
         Movie, on_delete=models.CASCADE, related_name='reviews'
     )
@@ -18,8 +19,6 @@ class Review(models.Model):
     )
     content = models.TextField()
     rating = models.IntegerField()  # 1~5
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         # 🔥 익명 리뷰 허용하므로 제거

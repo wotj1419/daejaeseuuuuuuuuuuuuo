@@ -4,16 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const authStore = useAuthStore()
-const showDropdown = ref(false)
 const showBoardMenu = ref(false)
-
-function toggleDropdown() {
-  showDropdown.value = !showDropdown.value
-}
-
-function closeDropdown() {
-  showDropdown.value = false
-}
 
 // 외부 클릭 감지
 function toggleBoardMenu(event) {
@@ -26,16 +17,8 @@ function closeBoardMenu() {
 }
 
 function handleClickOutside(event) {
-  const dropdown = document.querySelector('.profile-dropdown')
-  const profileBtn = document.querySelector('.profile-btn')
   const boardDropdown = document.querySelector('.board-dropdown')
   const boardBtn = document.querySelector('.board-link')
-
-  if (dropdown && profileBtn && showDropdown.value) {
-    if (!dropdown.contains(event.target) && !profileBtn.contains(event.target)) {
-      closeDropdown()
-    }
-  }
 
   if (boardDropdown && boardBtn && showBoardMenu.value) {
     if (!boardDropdown.contains(event.target) && !boardBtn.contains(event.target)) {
@@ -78,30 +61,12 @@ onBeforeUnmount(() => {
       <a href="#" class="logout-link" @click.prevent="authStore.logout">로그아웃</a>
 
       <div class="profile-wrapper">
-        <button type="button" class="profile-btn" @click="toggleDropdown">
+        <RouterLink class="profile-btn" to="/me">
           <div class="avatar">
             {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
           </div>
           <span class="username-text">{{ authStore.user?.username }}</span>
-        </button>
-
-        <div v-if="showDropdown" class="profile-dropdown">
-        <RouterLink class="dropdown-item" to="/my-movies" @click="closeDropdown">
-            내 영화
         </RouterLink>
-        <RouterLink class="dropdown-item" to="/my-reviews" @click="closeDropdown">
-            내 리뷰
-        </RouterLink>
-        <RouterLink class="dropdown-item" to="/my-friends" @click="closeDropdown">
-          내 친구
-        </RouterLink>
-
-        <div class="dropdown-divider"></div>
-
-          <RouterLink class="dropdown-item" to="/profile" @click="closeDropdown">
-            프로필 수정
-          </RouterLink>
-        </div>
       </div>
     </div>
 

@@ -18,28 +18,77 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ('username',)
 
 
-class FriendSerializer(serializers.ModelSerializer):
+class UserSummarySerializer(serializers.ModelSerializer):
+    follower_count = serializers.SerializerMethodField()
+    following_count = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ('username', 'bio', 'favorite_movie_name')
+        fields = (
+            'username',
+            'bio',
+            'favorite_movie_name',
+            'follower_count',
+            'following_count',
+        )
+        read_only_fields = ('username',)
+
+    def get_follower_count(self, obj):
+        return obj.followers.count()
+
+    def get_following_count(self, obj):
+        return obj.followings.count()
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    is_following = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('username', 'bio', 'favorite_movie_name', 'is_following')
+
+    def get_is_following(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user and user.is_authenticated:
+            return user.followings.filter(pk=obj.pk).exists()
+        return False
 
 
 class UserListSerializer(serializers.ModelSerializer):
-    is_friend = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
+    is_followed_by = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('username', 'bio', 'favorite_movie_name', 'is_friend')
+        fields = (
+            'username',
+            'bio',
+            'favorite_movie_name',
+            'is_following',
+            'is_followed_by',
+        )
 
-    def get_is_friend(self, obj):
-        friend_ids = self.context.get('friend_ids')
-        if friend_ids is not None:
-            return obj.pk in friend_ids
+    def get_is_following(self, obj):
+        following_ids = self.context.get('following_ids')
+        if following_ids is not None:
+            return obj.pk in following_ids
 
         request = self.context.get('request')
         user = getattr(request, 'user', None) if request else None
         if user and user.is_authenticated:
-            return user.friends.filter(pk=obj.pk).exists()
+            return user.followings.filter(pk=obj.pk).exists()
+        return False
+
+    def get_is_followed_by(self, obj):
+        follower_ids = self.context.get('follower_ids')
+        if follower_ids is not None:
+            return obj.pk in follower_ids
+
+        request = self.context.get('request')
+        user = getattr(request, 'user', None) if request else None
+        if user and user.is_authenticated:
+            return obj.followings.filter(pk=user.pk).exists()
         return False
 
 
@@ -148,6 +197,15 @@ class ProfileView(APIView):
         return Response(serializer.data)
 
 
+class MyProfileSummaryView(APIView):
+    """사용자 대시보드용 요약 정보"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSummarySerializer(request.user)
+        return Response(serializer.data)
+
+
 class MyFavoriteMoviesView(APIView):
     """내가 좋아요한 영화 목록"""
     permission_classes = [permissions.IsAuthenticated]
@@ -174,33 +232,48 @@ class UserFavoriteMoviesView(APIView):
         })
 
 
-class MyFriendsListView(APIView):
-    """현재 유저의 친구 목록"""
+class MyFollowingsListView(APIView):
+    """현재 유저의 팔로잉 목록"""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        friends = request.user.friends.all().order_by('username')
-        serializer = FriendSerializer(friends, many=True)
+        followings = request.user.followings.all().order_by('username')
+        serializer = FollowSerializer(followings, many=True, context={'request': request})
+        return Response(serializer.data)
+
+
+class MyFollowersListView(APIView):
+    """현재 유저를 팔로우하는 유저 목록"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        followers = request.user.followers.all().order_by('username')
+        serializer = FollowSerializer(followers, many=True, context={'request': request})
         return Response(serializer.data)
 
 
 class UserListView(APIView):
-    """전체 사용자 목록 (친구 추가용)"""
+    """전체 사용자 목록 (팔로우/언팔로우용)"""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         users = User.objects.exclude(pk=request.user.pk).order_by('username')
-        friend_ids = set(request.user.friends.values_list('pk', flat=True))
+        following_ids = set(request.user.followings.values_list('pk', flat=True))
+        follower_ids = set(request.user.followers.values_list('pk', flat=True))
         serializer = UserListSerializer(
             users,
             many=True,
-            context={'request': request, 'friend_ids': friend_ids}
+            context={
+                'request': request,
+                'following_ids': following_ids,
+                'follower_ids': follower_ids,
+            }
         )
         return Response(serializer.data)
 
 
-class FriendToggleView(APIView):
-    """친구 등록/삭제 토글"""
+class FollowToggleView(APIView):
+    """팔로우/언팔로우 토글"""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, username):
@@ -208,23 +281,23 @@ class FriendToggleView(APIView):
 
         if target_user == request.user:
             return Response(
-                {'error': '본인은 친구로 추가할 수 없습니다.'},
+                {'error': '본인은 팔로우할 수 없습니다.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         user = request.user
-        if target_user in user.friends.all():
-            user.friends.remove(target_user)
-            is_friend = False
-            message = '친구 목록에서 제거되었습니다.'
+        if target_user in user.followings.all():
+            user.followings.remove(target_user)
+            is_following = False
+            message = '팔로잉을 취소했습니다.'
         else:
-            user.friends.add(target_user)
-            is_friend = True
-            message = '친구로 등록되었습니다.'
+            user.followings.add(target_user)
+            is_following = True
+            message = '새로 팔로우했습니다.'
 
         return Response({
             'username': target_user.username,
-            'is_friend': is_friend,
+            'is_following': is_following,
             'message': message,
         })
 

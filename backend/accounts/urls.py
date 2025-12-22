@@ -2,11 +2,13 @@ from django.urls import path
 from .views import (
     FavoriteMovieToggleView,
     ProfileView,
+    MyProfileSummaryView,
     MyFavoriteMoviesView,
-    MyFriendsListView,
+    MyFollowingsListView,
+    MyFollowersListView,
     MyReviewsView,
     UserListView,
-    FriendToggleView,
+    FollowToggleView,
     CheckFavoriteStatusView,
     UserFavoriteMoviesView,
 )
@@ -17,8 +19,10 @@ urlpatterns = [
     path('my-movies/', MyFavoriteMoviesView.as_view()),
     path('users/<str:username>/favorites/', UserFavoriteMoviesView.as_view()),
     path('profile/', ProfileView.as_view()),
+    path('profile/summary/', MyProfileSummaryView.as_view()),
     path('my-reviews/', MyReviewsView.as_view()),
-    path('friends/', MyFriendsListView.as_view()),
+    path('followings/', MyFollowingsListView.as_view()),
+    path('followers/', MyFollowersListView.as_view()),
     path('users/', UserListView.as_view()),
-    path('friends/<str:username>/toggle/', FriendToggleView.as_view()),
+    path('follow/<str:username>/toggle/', FollowToggleView.as_view()),
 ]
