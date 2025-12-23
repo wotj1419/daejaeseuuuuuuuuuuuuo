@@ -24,6 +24,10 @@ class Movie(models.Model):
 
     genres = models.ManyToManyField(Genre, related_name='movies')
 
+    # Normalized embedding vector for reuse in taste/similarity features
+    embedding = models.JSONField(default=list, blank=True)
+    embedding_updated_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

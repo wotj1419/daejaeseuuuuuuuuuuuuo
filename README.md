@@ -59,3 +59,25 @@ git switch ë¸Œëœì¹˜ì´ë¦„
 404: ìš”ì²­í•œ ì£¼ì†Œë‚˜ ë°ì´í„° ì—†ìŒ
 
 500: ì„œë²„ ë‚´ë¶€ ì½”ë“œ ì˜¤ë¥˜
+## Taste embedding feature (AI ÃëÇâ ¿ä¾à)
+
+- Ãß°¡ ÀÇÁ¸¼º: `sentence-transformers`, `numpy` °¡ `backend/requirements.txt`¿¡ Æ÷ÇÔµÇ¾î ÀÖ½À´Ï´Ù. `pip install -r requirements.txt`¸¦ ´Ù½Ã ½ÇÇàÇØ ¼³Ä¡ÇÏ¼¼¿ä.
+- ÀÓº£µù ¹éÇÊ: ÁÁ¾Æ¿äÇÑ ¿µÈ­ ÀÓº£µùÀ» »çÀü¿¡ Ã¤¿ì·Á¸é ¹é¿£µå °¡»óÈ¯°æ¿¡¼­ ¾Æ·¡¸¦ ½ÇÇàÇÕ´Ï´Ù.
+
+```
+cd backend
+python manage.py backfill_movie_embeddings  # --force ¿É¼ÇÀ¸·Î Àç°è»ê
+```
+
+- ÃëÇâ ¿ä¾à È®ÀÎ:
+
+```
+# ÅäÅ«ÀÌ ÀÖ´Ù°í °¡Á¤ (TOKEN È¯°æ º¯¼ö)
+curl -H "Authorization: Token $TOKEN" http://127.0.0.1:8000/api/accounts/me/taste/
+```
+
+- ºñ½ÁÇÑ À¯Àú ÃßÃµ (»óÀ§ 10¸í):
+
+```
+curl -H "Authorization: Token $TOKEN" "http://127.0.0.1:8000/api/accounts/me/similar-users/?k=10"
+```

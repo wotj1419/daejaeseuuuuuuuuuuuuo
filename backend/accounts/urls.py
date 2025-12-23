@@ -11,6 +11,8 @@ from .views import (
     FollowToggleView,
     CheckFavoriteStatusView,
     UserFavoriteMoviesView,
+    MyTasteView,
+    SimilarUsersByTasteView,
 )
 
 urlpatterns = [
@@ -18,6 +20,11 @@ urlpatterns = [
     path('favorites/<int:movie_id>/status/', CheckFavoriteStatusView.as_view()),
     path('my-movies/', MyFavoriteMoviesView.as_view()),
     path('users/<str:username>/favorites/', UserFavoriteMoviesView.as_view()),
+    # New taste + similarity endpoints
+    path('me/taste/', MyTasteView.as_view()),
+    path('me/similar-users/', SimilarUsersByTasteView.as_view()),
+    # Backwards compatibility for older route
+    path('favorites/similar-users/', SimilarUsersByTasteView.as_view()),
     path('profile/', ProfileView.as_view()),
     path('profile/summary/', MyProfileSummaryView.as_view()),
     path('my-reviews/', MyReviewsView.as_view()),
