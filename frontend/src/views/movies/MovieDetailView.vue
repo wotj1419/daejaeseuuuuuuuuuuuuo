@@ -101,6 +101,27 @@ async function loadTrailer() {
   }
 }
 
+// cast info
+const cast = ref([])
+const castLoading = ref(false)
+
+async function loadCredits() {
+  castLoading.value = true
+  try {
+    const { data } = await moviesApi.credits(movieId.value)
+    cast.value = data.cast || []
+  } catch (err) {
+    console.error('출연진 로딩 오류:', err)
+  } finally {
+    castLoading.value = false
+  }
+}
+
+function profileUrl(path) {
+  if (!path) return ''
+  return `https://image.tmdb.org/t/p/w185${path}`
+}
+
 function posterUrl(path) {
   if (!path) return ''
   if (path.startsWith('http')) return path
@@ -117,6 +138,7 @@ watch(movieId, async (newId) => {
     if (movie.value) {
       store.fetchRecommend(newId)
       await loadTrailer()
+      await loadCredits()
     }
   }
 }, { immediate: true })
@@ -169,6 +191,25 @@ watch(movieId, async (newId) => {
           </button>
         </div>
       </div>
+
+      <!-- 👥 주요 출연진 -->
+      <section class="cast-section">
+        <h3 class="section-title">👥 주요 출연진</h3>
+        <div v-if="castLoading" class="loading-small">출연진 정보를 불러오는 중...</div>
+        <div v-else-if="cast.length" class="cast-scroll">
+          <div v-for="person in cast" :key="person.id" class="cast-card" @click="router.push({ name: 'personDetail', params: { personId: person.id } })">
+            <div class="cast-photo">
+              <img v-if="person.profile_path" :src="profileUrl(person.profile_path)" :alt="person.name" />
+              <div v-else class="no-photo">👤</div>
+            </div>
+            <div class="cast-info-text">
+              <div class="cast-name">{{ person.name }}</div>
+              <div class="cast-character">{{ person.character }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="no-data">출연진 정보가 없습니다.</div>
+      </section>
       
       <!-- 🎬 예고편 -->
       <section style="margin:40px 0;">
@@ -480,5 +521,94 @@ watch(movieId, async (newId) => {
   .big-poster { width: 100%; }
   .header h1 { font-size: 2rem; }
   .info-section { gap: 30px; }
+}
+
+/* 출연진 섹션 스타일 */
+.cast-section {
+  margin-bottom: 60px;
+}
+
+.cast-scroll {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding: 10px 0 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #1db954 #181818;
+}
+
+.cast-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.cast-scroll::-webkit-scrollbar-thumb {
+  background: #1db954;
+  border-radius: 10px;
+}
+
+.cast-scroll::-webkit-scrollbar-track {
+  background: #181818;
+}
+
+.cast-card {
+  flex: 0 0 140px;
+  background: #181818;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #282828;
+  transition: transform 0.3s ease;
+}
+
+.cast-card:hover {
+  transform: translateY(-5px);
+  border-color: #1db954;
+}
+
+.cast-photo {
+  width: 100%;
+  height: 180px;
+  background: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cast-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-photo {
+  font-size: 3rem;
+  color: #444;
+}
+
+.cast-info-text {
+  padding: 10px;
+}
+
+.cast-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cast-character {
+  font-size: 0.8rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.no-data {
+  color: #888;
+  padding: 20px 0;
 }
 </style>

@@ -12,6 +12,7 @@ import MyMoviesView from '@/views/user/library/MyMoviesView.vue'
 import MyReviewsView from '@/views/user/library/MyReviewsView.vue'
 import MyFriendsView from '@/views/user/MyFriendsView.vue'
 import MovieShareView from '@/views/movies/MovieShareView.vue'
+import PersonDetailView from '@/views/movies/PersonDetailView.vue'
 import FreeBoardView from '@/views/boards/FreeBoardView.vue'
 import FreeBoardCreateView from '@/views/boards/FreeBoardCreateView.vue'
 import FriendBoardView from '@/views/boards/FriendBoardView.vue'
@@ -30,6 +31,7 @@ const router = createRouter({
 
     // 커뮤니티(리뷰 목록)도 movieId 기반
     { path: '/movies/:movieId/community', name: 'community', component: CommunityView, props: true },
+    { path: '/person/:personId', name: 'personDetail', component: PersonDetailView, props: true },
 
     // 리뷰 작성도 movieId 기반
     { path: '/movies/:movieId/posts/new', name: 'postCreate', component: PostCreateView, props: true },

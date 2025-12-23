@@ -30,4 +30,14 @@ export const moviesApi = {
   trailer(movieId) {
     return http.get(`/movies/${movieId}/trailer/`)
   },
+
+  // 출연진 API
+  credits(movieId) {
+    return http.get(`/movies/${movieId}/credits/`)
+  },
+
+  // 인물 상세 API
+  personDetail(personId) {
+    return http.get(`/person/${personId}/`)
+  },
 }
