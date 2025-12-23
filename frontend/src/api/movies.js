@@ -45,4 +45,9 @@ export const moviesApi = {
   genreList() {
     return http.get('/genres/')
   },
+
+  // 인트로 영상 생성 API
+  introVideo(data = {}) {
+    return http.post('/intro-video/', data)
+  },
 }
