@@ -1,5 +1,5 @@
-<script setup>
-import { ref, onMounted, computed } from 'vue'
+﻿<script setup>
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { favoritesApi } from '@/api/favorites'
@@ -22,6 +22,10 @@ const lifeMovieLoading = ref(false)
 const lifeMovieError = ref('')
 const followLoading = ref(false)
 const isFollowing = ref(false)
+const similarUsers = ref([])
+const similarLoading = ref(false)
+const similarError = ref('')
+const similarInfo = ref('')
 
 function posterUrl(path) {
   if (!path) return ''
@@ -57,9 +61,9 @@ async function loadLifeMovie(name) {
       lifeMovieError.value = '인생 영화 정보를 찾을 수 없습니다.'
     }
   } catch (err) {
-    console.error('인생 영화 검색 오류:', err)
+    console.error('인생 영화 검색 실패:', err)
     lifeMovie.value = null
-    lifeMovieError.value = '인생 영화 정보를 불러오는 중 오류가 발생했습니다.'
+    lifeMovieError.value = '인생 영화 정보를 불러오는 중 문제가 발생했습니다.'
   } finally {
     lifeMovieLoading.value = false
   }
@@ -68,7 +72,7 @@ async function loadLifeMovie(name) {
 async function searchFavorites({ updateQuery = true } = {}) {
   const username = searchUsername.value.trim()
   if (!username) {
-    error.value = '사용자 아이디를 입력해 주세요.'
+    error.value = '사용자 이름을 입력해주세요'
     favorites.value = []
     infoMessage.value = ''
     return
@@ -100,11 +104,11 @@ async function searchFavorites({ updateQuery = true } = {}) {
     await loadLifeMovie(userProfile.value?.favorite_movie_name)
     await fetchFollowState()
   } catch (err) {
-    console.error('유저 좋아요 목록 조회 실패:', err)
+    console.error('타인 좋아요 목록 조회 실패:', err)
     if (err.response?.status === 404) {
       error.value = '해당 사용자를 찾을 수 없습니다.'
     } else {
-      error.value = '좋아요한 영화 목록을 불러오는 중 오류가 발생했습니다.'
+      error.value = '좋아요한 영화 목록을 불러오는 중 문제가 발생했습니다.'
     }
     userProfile.value = null
     favorites.value = []
@@ -114,6 +118,38 @@ async function searchFavorites({ updateQuery = true } = {}) {
   } finally {
     loading.value = false
   }
+}
+
+async function loadSimilarUsers() {
+  if (!isAuthenticated.value) {
+    similarUsers.value = []
+    similarInfo.value = ''
+    similarError.value = ''
+    return
+  }
+
+  similarLoading.value = true
+  similarError.value = ''
+  similarInfo.value = ''
+  try {
+    const { data } = await favoritesApi.getSimilarUsers()
+    similarUsers.value = data.results || []
+    if (!similarUsers.value.length) {
+      similarInfo.value = '내가 좋아하는 장르와 비슷한 사용자가 아직 없습니다.'
+    }
+  } catch (err) {
+    console.error('좋아요 사용자 추천 불러오기 오류:', err)
+    similarError.value = '비슷한 취향 프로필을 불러오는 중 문제가 발생했습니다.'
+    similarUsers.value = []
+  } finally {
+    similarLoading.value = false
+  }
+}
+
+function selectSimilarUser(user) {
+  if (!user?.username) return
+  searchUsername.value = user.username
+  searchFavorites()
 }
 
 async function fetchFollowState() {
@@ -148,9 +184,39 @@ async function toggleFollow() {
   }
 }
 
+function formatSummary(user) {
+  const genres = Array.isArray(user.top_genres) ? user.top_genres.filter(Boolean) : []
+  const titles = Array.isArray(user.sample_titles) ? user.sample_titles.filter(Boolean) : []
+  const parts = []
+  if (genres.length) {
+    parts.push(`주요 장르: ${genres.join(', ')}`)
+  }
+  if (titles.length) {
+    parts.push(`대표작: ${titles.join(', ')}`)
+  }
+  if (!parts.length && user.summary) {
+    return user.summary
+  }
+  if (!parts.length) {
+    return '요약 정보가 없습니다.'
+  }
+  return parts.join('\n')
+}
+
 onMounted(() => {
   if (searchUsername.value) {
     searchFavorites({ updateQuery: false })
+  }
+  loadSimilarUsers()
+})
+
+watch(isAuthenticated, (authed) => {
+  if (authed) {
+    loadSimilarUsers()
+  } else {
+    similarUsers.value = []
+    similarError.value = ''
+    similarInfo.value = ''
   }
 })
 </script>
@@ -163,24 +229,88 @@ onMounted(() => {
         <p>관심 있는 유저의 좋아요 목록을 확인하고, 함께 감상할 영화를 발견해보세요.</p>
       </div>
       <div class="share-search">
+        <div class="search-avatar" v-if="userProfile?.profile_image">
+          <img :src="userProfile.profile_image" alt="profile" />
+        </div>
         <input
           v-model="searchUsername"
           @keyup.enter="searchFavorites"
           placeholder="예) movielover123"
         />
         <button @click="searchFavorites" :disabled="loading">
-          {{ loading ? '조회 중…' : '검색' }}
+          {{ loading ? '검색 중...' : '검색' }}
         </button>
+      </div>
+    </section>
+
+    <section class="similar-section">
+      <div class="similar-header">
+        <p class="section-label">취향 공유</p>
+        <h3 class="section-title">나와 비슷한 좋아요 장르의 유저가 있어요.</h3>
+        <p class="similar-sub">좋아요 목록의 장르와 대표작을 계산해 선별했어요.</p>
+      </div>
+
+      <div v-if="!isAuthenticated" class="similar-gate">
+        <p>로그인하면 비슷한 장르를 가진 사용자 추천을 보여드릴게요.</p>
+        <button @click="router.push({ name: 'login' })">로그인</button>
+      </div>
+
+      <div v-else>
+        <div v-if="similarLoading" class="similar-loading">불러오는 중...</div>
+        <div v-else-if="similarError" class="error-message">{{ similarError }}</div>
+        <div v-else-if="similarInfo" class="info-message">{{ similarInfo }}</div>
+        <div v-else class="similar-row">
+          <article
+            v-for="u in similarUsers"
+            :key="u.username"
+            class="similar-card"
+            @click="selectSimilarUser(u)"
+          >
+            <div class="card-top">
+              <div class="profile-chip" v-if="u.profile_image">
+                <img :src="u.profile_image" alt="profile" />
+              </div>
+              <div class="profile-chip placeholder" v-else>
+                {{ u.username?.charAt(0).toUpperCase() || 'U' }}
+              </div>
+              <div>
+                <h4>{{ u.username }}</h4>
+                <p class="mini-text">{{ u.favorite_movie_name || '좋아하는 영화 정보가 없어요.' }}</p>
+              </div>
+            </div>
+            <p class="summary">{{ formatSummary(u) }}</p>
+            <div class="sample-list">
+              <span class="sample-label">대표작</span>
+              <span
+                v-for="title in (u.sample_titles || [])"
+                :key="title"
+                class="sample-pill"
+              >
+                🎬 {{ title }}
+              </span>
+              <span v-if="!u.sample_titles?.length" class="sample-pill muted">정보 없음</span>
+            </div>
+            <p class="mini-text" v-if="u.bio">{{ u.bio }}</p>
+          </article>
+        </div>
       </div>
     </section>
 
     <div v-if="userProfile" class="share-profile">
       <div class="life-header">
-        <div>
-          <h2>{{ userProfile.username }}님의 인생 영화</h2>
-          <p class="life-movie">
-            {{ userProfile.favorite_movie_name || '등록된 인생 영화가 없습니다.' }}
-          </p>
+        <div class="life-user">
+          <div class="profile-chip" v-if="userProfile.profile_image">
+            <img :src="userProfile.profile_image" alt="profile" />
+          </div>
+          <div class="profile-chip placeholder" v-else>
+            {{ userProfile.username?.charAt(0).toUpperCase() || 'U' }}
+          </div>
+          <div>
+            <h2>{{ userProfile.username }}님의 인생 영화</h2>
+            <p class="life-movie">
+              {{ userProfile.favorite_movie_name || '등록된 인생 영화가 없습니다.' }}
+            </p>
+          </div>
         </div>
         <button
           v-if="authStore.user?.username !== userProfile.username"
@@ -247,7 +377,7 @@ onMounted(() => {
               <span>★ {{ movie.vote_average?.toFixed(1) || '-' }}</span>
               <span>{{ movie.release_date?.substring(0, 4) || '-' }}</span>
             </div>
-            <p v-if="movie.ai_reason" class="reason">「{{ movie.ai_reason }}」</p>
+            <p v-if="movie.ai_reason" class="reason">{{ movie.ai_reason }}</p>
           </div>
         </div>
       </div>
@@ -300,6 +430,33 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.life-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-chip {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, #1db954, #1ed760);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #000;
+}
+
+.profile-chip img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .life-movie {
@@ -384,6 +541,23 @@ onMounted(() => {
 .share-search {
   display: flex;
   gap: 12px;
+  align-items: center;
+}
+
+.search-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #1db954, #1ed760);
+  flex-shrink: 0;
+}
+
+.search-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .movies-section {
@@ -392,6 +566,122 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 30px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.similar-section {
+  margin-top: 50px;
+  margin-bottom: 32px;
+  padding: 26px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.similar-header {
+  margin-bottom: 16px;
+}
+
+.similar-sub {
+  color: #8fa799;
+  margin: 6px 0 0;
+}
+
+.similar-gate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.similar-gate button {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  background: #2d4d3a;
+  color: #f6f6f6;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.similar-loading {
+  color: #9ed3b4;
+}
+
+.similar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 6px;
+}
+
+.similar-card {
+  width: 100%;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.similar-card:hover {
+  border-color: #4f9171;
+  transform: translateY(-3px);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary {
+  color: #cde6d6;
+  margin: 0;
+  line-height: 1.4;
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.mini-text {
+  color: #9aa7a0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.sample-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sample-label {
+  font-size: 0.85rem;
+  color: #9aa7a0;
+}
+
+.sample-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e6f5ec;
+  font-size: 0.9rem;
+}
+
+.sample-pill.muted {
+  color: #8b9992;
 }
 
 .movies-section-header {
@@ -423,8 +713,9 @@ onMounted(() => {
 
 .share-search button {
   border: none;
-  border-radius: 999px;
-  padding: 0 32px;
+  border-radius: 12px;
+  padding: 12px 18px;
+  min-width: 76px;
   background: #37664b;
   color: #f6f6f6;
   font-weight: 700;

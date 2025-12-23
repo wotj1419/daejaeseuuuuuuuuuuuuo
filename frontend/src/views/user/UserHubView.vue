@@ -28,6 +28,7 @@ const suggestions = ref([])
 
 const bio = ref('')
 const favoriteMovieName = ref('')
+const profileImage = ref('')
 const statusMessage = ref('')
 const errorMessage = ref('')
 
@@ -52,6 +53,7 @@ async function loadSummary() {
     summary.value = data
     bio.value = data.bio || ''
     favoriteMovieName.value = data.favorite_movie_name || ''
+    profileImage.value = data.profile_image || ''
   } catch (error) {
     console.error('프로필 요약 불러오기 실패', error)
     errorMessage.value = '내 정보를 불러오는 중 문제가 발생했습니다.'
@@ -151,6 +153,7 @@ async function saveProfile() {
     await accountsApi.updateProfile({
       bio: bio.value,
       favorite_movie_name: favoriteMovieName.value,
+      profile_image: profileImage.value,
     })
     statusMessage.value = '저장 완료!'
     await loadSummary()
@@ -161,6 +164,25 @@ async function saveProfile() {
     loading.savingProfile = false
     setTimeout(() => (statusMessage.value = ''), 1200)
   }
+}
+
+function handleImageChange(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  const maxSize = 2 * 1024 * 1024 // 2MB
+  if (file.size > maxSize) {
+    alert('이미지 크기는 2MB를 넘길 수 없습니다.')
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    profileImage.value = reader.result
+  }
+  reader.readAsDataURL(file)
+}
+
+function clearProfileImage() {
+  profileImage.value = ''
 }
 
 function goLogin() {
@@ -208,7 +230,8 @@ onMounted(() => {
   <div class="hub">
     <section class="hero">
       <div class="avatar">
-        {{ displayName.charAt(0).toUpperCase() || 'U' }}
+        <img v-if="profileImage" :src="profileImage" alt="profile" />
+        <span v-else>{{ displayName.charAt(0).toUpperCase() || 'U' }}</span>
       </div>
       <p class="eyebrow">My Page</p>
       <h1>{{ displayName }}님의 큐레이션</h1>
@@ -431,6 +454,24 @@ onMounted(() => {
       <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
       <form class="form" @submit.prevent="saveProfile">
+        <label>프로필 이미지</label>
+        <div class="avatar-row">
+          <div class="avatar-preview">
+            <img v-if="profileImage" :src="profileImage" alt="profile preview" />
+            <span v-else>{{ displayName.charAt(0).toUpperCase() }}</span>
+          </div>
+          <div class="avatar-actions">
+            <label class="upload-btn">
+              <input type="file" accept="image/*" hidden @change="handleImageChange" />
+              이미지 선택
+            </label>
+            <button v-if="profileImage" type="button" class="ghost" @click="clearProfileImage">
+              제거
+            </button>
+            <p class="muted small">2MB 이하 이미지를 업로드하거나 제거할 수 있습니다.</p>
+          </div>
+        </div>
+
         <label>소개</label>
         <textarea
           v-model="bio"
@@ -467,6 +508,20 @@ onMounted(() => {
   background: linear-gradient(135deg, rgba(29, 185, 84, 0.2), rgba(4, 4, 4, 0.95));
   border-bottom: 1px solid #0f0f0f;
   text-align: center;
+}
+
+.hero .avatar {
+  overflow: hidden;
+}
+
+.hero .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero .avatar span {
+  display: inline-flex;
 }
 
 .hero-text h1 {
@@ -764,6 +819,55 @@ onMounted(() => {
   display: grid;
   gap: 10px;
   max-width: 520px;
+}
+
+.avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1db954, #1ed760);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 800;
+  color: #000;
+  overflow: hidden;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.2s ease;
+}
+
+.upload-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .form input,

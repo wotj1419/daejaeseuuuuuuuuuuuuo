@@ -251,7 +251,7 @@ watch(messageInput, (value) => {
   <div class="friend-board">
     <section class="hero">
       <p class="hero-label">Board Space</p>
-      <h1>친구게시판</h1>
+      <h1>소통방</h1>
       <p>초대한 친구들과 자신의 취향을 나눠보세요.</p>
     </section>
 
@@ -362,7 +362,7 @@ watch(messageInput, (value) => {
       <div class="modal">
         <header class="modal-header">
           <div>
-            <p class="hero-label">Create Channel</p>
+            <p class="hero-label">Create</p>
             <h3>채팅방 만들기</h3>
           </div>
           <button class="icon-btn" type="button" @click="closeCreateModal">×</button>

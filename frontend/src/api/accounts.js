@@ -22,6 +22,12 @@ export const accountsApi = {
   toggleFollow(username) {
     return http.post(`/accounts/follow/${encodeURIComponent(username)}/toggle/`)
   },
+  getMyTaste() {
+    return http.get('/accounts/me/taste/')
+  },
+  getSimilarUsers(params = {}) {
+    return http.get('/accounts/me/similar-users/', { params })
+  },
   // Backwards compatibility for legacy friend routes in components that haven't been renamed yet.
   getFriends() {
     return http.get('/accounts/followings/')

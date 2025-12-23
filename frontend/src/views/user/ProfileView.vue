@@ -10,14 +10,22 @@ const authStore = useAuthStore()
 
 const bio = ref('')
 const favoriteMovieName = ref('')
+const profileImage = ref('')
 const savedMessage = ref('')
 const profileError = ref('')
 const searchLoading = ref(false)
+const taste = ref(null)
+const tasteLoading = ref(false)
+const tasteError = ref('')
+const similarUsers = ref([])
+const similarLoading = ref(false)
+const similarError = ref('')
 
 async function loadProfile() {
   if (!authStore.isAuthenticated) {
     bio.value = ''
     favoriteMovieName.value = ''
+    profileImage.value = ''
     profileError.value = ''
     return
   }
@@ -26,16 +34,69 @@ async function loadProfile() {
     const { data } = await accountsApi.getProfile()
     bio.value = data.bio || ''
     favoriteMovieName.value = data.favorite_movie_name || ''
+    profileImage.value = data.profile_image || ''
     profileError.value = ''
   } catch (error) {
     console.error('프로필 데이터를 불러오지 못했습니다', error)
     profileError.value = '프로필 정보를 불러오는 중 오류가 발생했습니다.'
     bio.value = ''
     favoriteMovieName.value = ''
+    profileImage.value = ''
   }
 }
 
-watch(() => authStore.user?.username, loadProfile, { immediate: true })
+watch(
+  () => authStore.user?.username,
+  async () => {
+    await loadProfile()
+    await loadTaste()
+    await loadSimilarUsers()
+  },
+  { immediate: true }
+)
+
+async function loadTaste() {
+  if (!authStore.isAuthenticated) {
+    taste.value = null
+    tasteError.value = ''
+    return
+  }
+  tasteLoading.value = true
+  tasteError.value = ''
+  try {
+    const { data } = await accountsApi.getMyTaste()
+    taste.value = data
+  } catch (error) {
+    console.error('취향 요약 불러오기 실패', error)
+    tasteError.value = '취향 정보를 불러오지 못했습니다.'
+    taste.value = null
+  } finally {
+    tasteLoading.value = false
+  }
+}
+
+async function loadSimilarUsers(k = 6) {
+  if (!authStore.isAuthenticated) {
+    similarUsers.value = []
+    similarError.value = ''
+    return
+  }
+  similarLoading.value = true
+  similarError.value = ''
+  try {
+    const { data } = await accountsApi.getSimilarUsers({ k })
+    similarUsers.value = data.results || []
+    if (data.reason === 'not_enough_likes') {
+      similarError.value = '좋아요한 영화가 5개 미만이라 추천을 표시할 수 없어요.'
+    }
+  } catch (error) {
+    console.error('유사 취향 유저 불러오기 실패', error)
+    similarError.value = '비슷한 취향 유저를 불러오지 못했습니다.'
+    similarUsers.value = []
+  } finally {
+    similarLoading.value = false
+  }
+}
 
 async function saveProfile() {
   if (!authStore.isAuthenticated) {
@@ -47,6 +108,7 @@ async function saveProfile() {
     await accountsApi.updateProfile({
       bio: bio.value,
       favorite_movie_name: favoriteMovieName.value,
+      profile_image: profileImage.value,
     })
     savedMessage.value = '저장 완료!'
     setTimeout(() => (savedMessage.value = ''), 1200)
@@ -99,13 +161,40 @@ async function goFavCommunity() {
 }
 
 const displayName = computed(() => authStore.user?.username || 'Guest')
+
+function handleImageChange(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  const maxSize = 2 * 1024 * 1024 // 2MB
+  if (file.size > maxSize) {
+    alert('이미지 크기가 2MB를 초과할 수 없습니다.')
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    profileImage.value = reader.result
+  }
+  reader.readAsDataURL(file)
+}
+
+function clearProfileImage() {
+  profileImage.value = ''
+}
+
+function formatDate(value) {
+  if (!value) return ''
+  return new Date(value).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
+}
 </script>
 
 <template>
   <div class="profile-container">
     <div class="profile-header">
       <div class="profile-avatar">
-        {{ displayName.charAt(0).toUpperCase() }}
+        <img v-if="profileImage" :src="profileImage" alt="profile" />
+        <span v-else>{{ displayName.charAt(0).toUpperCase() }}</span>
       </div>
       <h1 class="profile-name">{{ displayName }}님의 공간</h1>
       <p class="profile-welcome">취향을 담은 나만의 프로필을 꾸며보세요 🎞️</p>
@@ -117,8 +206,28 @@ const displayName = computed(() => authStore.user?.username || 'Guest')
       <!-- ✏️ 기본 정보 설정 섹션 -->
       <section class="profile-card settings-card">
         <div class="card-header">
-          <span class="card-icon">👤</span>
+          <span class="card-icon">🧩</span>
           <h3>기본 정보</h3>
+        </div>
+
+        <div class="form-group avatar-group">
+          <label>프로필 이미지</label>
+          <div class="avatar-row">
+            <div class="avatar-preview">
+              <img v-if="profileImage" :src="profileImage" alt="profile preview" />
+              <span v-else>{{ displayName.charAt(0).toUpperCase() }}</span>
+            </div>
+            <div class="avatar-actions">
+              <label class="upload-btn">
+                <input type="file" accept="image/*" @change="handleImageChange" hidden />
+                이미지 선택
+              </label>
+              <button v-if="profileImage" type="button" class="ghost-btn" @click="clearProfileImage">
+                제거
+              </button>
+              <p class="input-hint">2MB 이하 이미지를 업로드하거나 기존 이미지를 제거할 수 있습니다.</p>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -175,6 +284,61 @@ const displayName = computed(() => authStore.user?.username || 'Guest')
         </div>
       </section>
     </div>
+
+    <section class="profile-card taste-card">
+      <div class="card-header">
+        <span class="card-icon">??</span>
+        <h3>?? ?? & ??? ??</h3>
+      </div>
+
+      <div v-if="tasteLoading" class="info-message">?? ??? ???? ?????</div>
+      <div v-else-if="tasteError" class="error-message">{{ tasteError }}</div>
+      <div v-else-if="taste?.reason === 'not_enough_likes'">
+        ???? ??? ?? ???? ?? ?? ??? ?? ? ???. ???? 5? ?? ??????.
+      </div>
+      <div v-else-if="taste">
+        <p class="taste-summary">{{ taste.taste_summary }}</p>
+        <div class="chip-row" v-if="taste.top_genres?.length">
+          <span v-for="g in taste.top_genres" :key="g.name" class="genre-chip">
+            {{ g.name }} ? {{ ((g.score || 0) * 100).toFixed(0) }}%
+          </span>
+        </div>
+        <p class="taste-meta">
+          ??? {{ taste.liked_movies_count }}? ? ???? {{ formatDate(taste.updated_at) }}
+        </p>
+      </div>
+
+      <div class="similar-block">
+        <div class="similar-header-row">
+          <h4>??? ?? ??</h4>
+          <span class="mini-text" v-if="similarUsers.length">? {{ similarUsers.length }}?</span>
+        </div>
+        <div v-if="similarLoading" class="info-message">??? ???? ?????</div>
+        <div v-else-if="similarError" class="error-message">{{ similarError }}</div>
+        <div v-else-if="!similarUsers.length">
+          ?? ??? ??? ????.
+        </div>
+        <div v-else class="similar-mini-grid">
+          <button
+            v-for="u in similarUsers"
+            :key="u.user.id"
+            type="button"
+            class="similar-mini-card"
+            @click="router.push({ name: 'movieShare', query: { username: u.user.username } })"
+          >
+            <div class="mini-avatar">
+              {{ u.user.username?.charAt(0).toUpperCase() || 'U' }}
+            </div>
+            <div class="mini-body">
+              <strong>{{ u.user.username }}</strong>
+              <p class="mini-text">??? {{ Math.round((u.similarity || 0) * 100) }}% ? ?? {{ u.common_likes_count }}?</p>
+              <p class="mini-text" v-if="u.user.bio">{{ u.user.bio }}</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
   </div>
 </template>
 
@@ -208,6 +372,17 @@ const displayName = computed(() => authStore.user?.username || 'Guest')
   font-weight: 900;
   color: #000;
   box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar span {
+  display: inline-flex;
 }
 
 .profile-name {
@@ -264,6 +439,73 @@ const displayName = computed(() => authStore.user?.username || 'Guest')
 /* 폼 요소 */
 .form-group {
   margin-bottom: 24px;
+}
+
+.avatar-group .avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avatar-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1db954, #1ed760);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  color: #000;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.upload-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ghost-btn {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.ghost-btn:hover {
+  border-color: #1db954;
+  color: #1db954;
 }
 
 .form-group label {
@@ -387,6 +629,96 @@ textarea {
   background: rgba(255, 255, 255, 0.1);
   border-color: #1db954;
   color: #1db954;
+}
+
+.taste-card {
+  margin-top: 20px;
+}
+
+.taste-summary {
+  font-size: 1.05rem;
+  color: #e8f5ed;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.genre-chip {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(29, 185, 84, 0.12);
+  color: #c6f3d7;
+  font-size: 0.9rem;
+  border: 1px solid rgba(29, 185, 84, 0.2);
+}
+
+.taste-meta {
+  color: #9bb2a4;
+  font-size: 0.9rem;
+}
+
+.similar-block {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.similar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.similar-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.similar-mini-card {
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 12px;
+  color: #e7e7e7;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.similar-mini-card:hover {
+  border-color: #1db954;
+  transform: translateY(-2px);
+}
+
+.mini-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1db954, #1ed760);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.mini-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 button:disabled {

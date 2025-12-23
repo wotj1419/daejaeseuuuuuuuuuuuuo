@@ -1,10 +1,12 @@
 <script setup>
 import { RouterView, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { accountsApi } from '@/api/accounts'
 
 const authStore = useAuthStore()
 const showBoardMenu = ref(false)
+const profileImage = ref('')
 
 // 외부 클릭 감지
 function toggleBoardMenu(event) {
@@ -34,6 +36,32 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+async function loadProfileAvatar() {
+  if (!authStore.isAuthenticated) {
+    profileImage.value = ''
+    return
+  }
+  try {
+    const { data } = await accountsApi.getProfileSummary()
+    profileImage.value = data.profile_image || ''
+  } catch (e) {
+    console.warn('프로필 이미지 불러오기 실패', e)
+    profileImage.value = ''
+  }
+}
+
+watch(
+  () => authStore.isAuthenticated,
+  (authed) => {
+    if (authed) {
+      loadProfileAvatar()
+    } else {
+      profileImage.value = ''
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -63,9 +91,9 @@ onBeforeUnmount(() => {
       <div class="profile-wrapper">
         <RouterLink class="profile-btn" to="/me">
           <div class="avatar">
-            {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
+            <img v-if="profileImage" :src="profileImage" alt="profile" />
+            <span v-else>{{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}</span>
           </div>
-          <span class="username-text">{{ authStore.user?.username }}</span>
         </RouterLink>
       </div>
     </div>
@@ -222,12 +250,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
-.username-text {
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar span {
+  display: inline-flex;
 }
 
 .profile-dropdown {
