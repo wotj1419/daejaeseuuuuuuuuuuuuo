@@ -377,9 +377,27 @@ class SimilarUsersByTasteView(APIView):
             if not tp or not tp.embedding:
                 continue
             sim = cosine_similarity(base_embedding, tp.embedding)
-            common = len(base_like_ids.intersection(set(candidate.favorite_movies.values_list('id', flat=True))))
+            favorite_list = list(candidate.favorite_movies.all())
+            candidate_like_ids = {movie.id for movie in favorite_list}
+            common = len(base_like_ids.intersection(candidate_like_ids))
+            unique_movies = [movie for movie in favorite_list if movie.id not in base_like_ids]
+            sample_titles = [movie.title for movie in favorite_list[:5] if movie.title]
+            recommendation_sources = unique_movies or favorite_list[:4]
+            recommendations = MovieListSerializer(recommendation_sources[:4], many=True).data
+            top_genres = tp.top_genres or []
+            taste_summary = tp.summary or ''
+            liked_movies_count = tp.liked_movies_count or len(favorite_list)
             results.append({
                 'user': {'id': candidate.id, 'username': candidate.username, 'bio': candidate.bio},
+                'username': candidate.username,
+                'bio': candidate.bio,
+                'favorite_movie_name': candidate.favorite_movie_name,
+                'profile_image': candidate.profile_image,
+                'top_genres': top_genres,
+                'taste_summary': taste_summary,
+                'liked_movies_count': liked_movies_count,
+                'sample_titles': sample_titles,
+                'recommendations': recommendations,
                 'similarity': round(sim, 4),
                 'common_likes_count': common,
             })
@@ -390,4 +408,32 @@ class SimilarUsersByTasteView(APIView):
             'k': k,
             'base_user': base_user,
             'results': results,
+        })
+
+
+class UserLocationSerializer(serializers.Serializer):
+    latitude = serializers.FloatField(allow_null=True, required=True)
+    longitude = serializers.FloatField(allow_null=True, required=True)
+
+
+class MyLocationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            'latitude': user.latitude,
+            'longitude': user.longitude,
+        })
+
+    def patch(self, request):
+        serializer = UserLocationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        user.latitude = serializer.validated_data.get('latitude')
+        user.longitude = serializer.validated_data.get('longitude')
+        user.save(update_fields=['latitude', 'longitude'])
+        return Response({
+            'latitude': user.latitude,
+            'longitude': user.longitude,
         })

@@ -18,6 +18,8 @@ class User(AbstractUser):
     bio = models.TextField(blank=True, default='')
     favorite_movie_name = models.CharField(max_length=255, blank=True, default='')
     profile_image = models.TextField(blank=True, default='')
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
 
 class TasteProfile(TimeStampedModel):

@@ -46,7 +46,7 @@ class TasteApiTests(TestCase):
             self.user_movies.append(movie)
             self.user.favorite_movies.add(movie)
 
-        for movie in self.user_movies[:3]:
+        for movie in self.user_movies:
             self.other.favorite_movies.add(movie)
 
         update_user_taste_profile(self.user)
@@ -68,5 +68,9 @@ class TasteApiTests(TestCase):
         data = resp.json()
         self.assertIn('results', data)
         # At least one similar user (u2) should appear
-        usernames = [item['user']['username'] for item in data.get('results', [])]
+        results = data.get('results', [])
+        self.assertGreater(len(results), 0)
+        usernames = [item.get('user', {}).get('username') for item in results]
         self.assertIn(self.other.username, usernames)
+        self.assertTrue(all('recommendations' in item for item in results))
+        self.assertTrue(all('sample_titles' in item for item in results))

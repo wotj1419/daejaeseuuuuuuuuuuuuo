@@ -253,6 +253,9 @@ watch(messageInput, (value) => {
       <p class="hero-label">Board Space</p>
       <h1>소통방</h1>
       <p>초대한 친구들과 자신의 취향을 나눠보세요.</p>
+      <div class="hero-extras">
+        <router-link class="ghost-btn" :to="{ name: 'nearbyBoard' }">친구 찾기</router-link>
+      </div>
     </section>
 
     <section class="panel chat-panel">
@@ -433,6 +436,20 @@ watch(messageInput, (value) => {
 .hero p {
   color: rgba(255, 255, 255, 0.8);
   max-width: 640px;
+}
+
+.hero-extras {
+  margin-top: 12px;
+}
+
+.hero-extras .ghost-btn {
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-decoration: none;
+  font-weight: 700;
 }
 
 .panel {

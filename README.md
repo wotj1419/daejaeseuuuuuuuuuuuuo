@@ -23,6 +23,9 @@ cp .env.example .env
 # TMDB_API_KEY=...
 # GMS_KEY=...
 
+# - SECRET_KEY ìƒì„±
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
 # 5. ë°ì´í„°ë² ì´ìŠ¤ ë§ˆì´ê·¸ë ˆì´ì…˜
 python manage.py migrate
 
@@ -59,24 +62,24 @@ git switch ë¸Œëœì¹˜ì´ë¦„
 404: ìš”ì²­í•œ ì£¼ì†Œë‚˜ ë°ì´í„° ì—†ìŒ
 
 500: ì„œë²„ ë‚´ë¶€ ì½”ë“œ ì˜¤ë¥˜
-## Taste embedding feature (AI ÃëÇâ ¿ä¾à)
+## Taste embedding feature (AI ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½)
 
-- Ãß°¡ ÀÇÁ¸¼º: `sentence-transformers`, `numpy` °¡ `backend/requirements.txt`¿¡ Æ÷ÇÔµÇ¾î ÀÖ½À´Ï´Ù. `pip install -r requirements.txt`¸¦ ´Ù½Ã ½ÇÇàÇØ ¼³Ä¡ÇÏ¼¼¿ä.
-- ÀÓº£µù ¹éÇÊ: ÁÁ¾Æ¿äÇÑ ¿µÈ­ ÀÓº£µùÀ» »çÀü¿¡ Ã¤¿ì·Á¸é ¹é¿£µå °¡»óÈ¯°æ¿¡¼­ ¾Æ·¡¸¦ ½ÇÇàÇÕ´Ï´Ù.
+- ï¿½ß°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: `sentence-transformers`, `numpy` ï¿½ï¿½ `backend/requirements.txt`ï¿½ï¿½ ï¿½ï¿½ï¿½ÔµÇ¾ï¿½ ï¿½Ö½ï¿½ï¿½Ï´ï¿½. `pip install -r requirements.txt`ï¿½ï¿½ ï¿½Ù½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½Ï¼ï¿½ï¿½ï¿½.
+- ï¿½Óºï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½Æ¿ï¿½ï¿½ï¿½ ï¿½ï¿½È­ ï¿½Óºï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ã¤ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½é¿£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È¯ï¿½æ¿¡ï¿½ï¿½ ï¿½Æ·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
 
 ```
 cd backend
-python manage.py backfill_movie_embeddings  # --force ¿É¼ÇÀ¸·Î Àç°è»ê
+python manage.py backfill_movie_embeddings  # --force ï¿½É¼ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 ```
 
-- ÃëÇâ ¿ä¾à È®ÀÎ:
+- ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ È®ï¿½ï¿½:
 
 ```
-# ÅäÅ«ÀÌ ÀÖ´Ù°í °¡Á¤ (TOKEN È¯°æ º¯¼ö)
+# ï¿½ï¿½Å«ï¿½ï¿½ ï¿½Ö´Ù°ï¿½ ï¿½ï¿½ï¿½ï¿½ (TOKEN È¯ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
 curl -H "Authorization: Token $TOKEN" http://127.0.0.1:8000/api/accounts/me/taste/
 ```
 
-- ºñ½ÁÇÑ À¯Àú ÃßÃµ (»óÀ§ 10¸í):
+- ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ãµ (ï¿½ï¿½ï¿½ï¿½ 10ï¿½ï¿½):
 
 ```
 curl -H "Authorization: Token $TOKEN" "http://127.0.0.1:8000/api/accounts/me/similar-users/?k=10"

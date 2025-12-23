@@ -28,6 +28,12 @@ export const accountsApi = {
   getSimilarUsers(params = {}) {
     return http.get('/accounts/me/similar-users/', { params })
   },
+  getLocation() {
+    return http.get('/accounts/my-location/')
+  },
+  updateLocation(payload) {
+    return http.patch('/accounts/my-location/', payload)
+  },
   // Backwards compatibility for legacy friend routes in components that haven't been renamed yet.
   getFriends() {
     return http.get('/accounts/followings/')

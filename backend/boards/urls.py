@@ -6,6 +6,9 @@ from .views import (
     BoardCommentDetailView,
     BoardPostRecommendView,
     FriendBoardListCreateView,
+    MapConfigView,
+    NearbyBoardPostsView,
+    NearbyTheatersView,
 )
 
 urlpatterns = [
@@ -15,4 +18,7 @@ urlpatterns = [
     path('free/comments/<int:pk>/', BoardCommentDetailView.as_view()),
     path('free/', FreeBoardListCreateView.as_view()),
     path('friends/', FriendBoardListCreateView.as_view()),
+    path('map-config/', MapConfigView.as_view()),
+    path('nearby/', NearbyBoardPostsView.as_view()),
+    path('theaters/', NearbyTheatersView.as_view()),
 ]

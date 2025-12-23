@@ -32,6 +32,8 @@ class BoardPost(TimeStampedModel):
     view_count = models.PositiveIntegerField(default=0)
     recommendation_count = models.PositiveIntegerField(default=0)
     comment_count = models.PositiveIntegerField(default=0)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']

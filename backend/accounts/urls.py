@@ -13,6 +13,7 @@ from .views import (
     UserFavoriteMoviesView,
     MyTasteView,
     SimilarUsersByTasteView,
+    MyLocationView,
 )
 
 urlpatterns = [
@@ -25,6 +26,7 @@ urlpatterns = [
     path('me/similar-users/', SimilarUsersByTasteView.as_view()),
     # Backwards compatibility for older route
     path('favorites/similar-users/', SimilarUsersByTasteView.as_view()),
+    path('my-location/', MyLocationView.as_view()),
     path('profile/', ProfileView.as_view()),
     path('profile/summary/', MyProfileSummaryView.as_view()),
     path('my-reviews/', MyReviewsView.as_view()),

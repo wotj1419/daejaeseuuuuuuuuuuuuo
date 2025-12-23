@@ -31,4 +31,13 @@ export const boardsApi = {
   createFriend(payload) {
     return http.post('/boards/friends/', payload)
   },
+  getNearbyPosts(params) {
+    return http.get('/boards/nearby/', { params })
+  },
+  getNearbyTheaters(params) {
+    return http.get('/boards/theaters/', { params })
+  },
+  getMapConfig() {
+    return http.get('/boards/map-config/')
+  },
 }

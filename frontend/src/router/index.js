@@ -17,6 +17,7 @@ import FreeBoardView from '@/views/boards/FreeBoardView.vue'
 import FreeBoardCreateView from '@/views/boards/FreeBoardCreateView.vue'
 import FreeBoardDetailView from '@/views/boards/FreeBoardDetailView.vue'
 import FriendBoardView from '@/views/boards/FriendBoardView.vue'
+import NearbyFriendsView from '@/views/boards/NearbyFriendsView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
@@ -53,6 +54,7 @@ const router = createRouter({
     { path: '/boards/free/new', name: 'freeBoardCreate', component: FreeBoardCreateView },
     { path: '/boards/free/:id', name: 'freeBoardDetail', component: FreeBoardDetailView, props: true },
     { path: '/boards/friend', name: 'friendBoard', component: FriendBoardView },
+    { path: '/boards/nearby', name: 'nearbyBoard', component: NearbyFriendsView },
 
     // Auth
     { path: '/login', name: 'login', component: () => import('@/views/auth/LoginView.vue') },

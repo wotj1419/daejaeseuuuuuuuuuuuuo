@@ -30,6 +30,7 @@ class BoardPostSerializer(serializers.ModelSerializer):
     recommendation_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
     comments = BoardCommentSerializer(many=True, read_only=True)
+    distance_km = serializers.SerializerMethodField()
 
     class Meta:
         model = BoardPost
@@ -48,6 +49,9 @@ class BoardPostSerializer(serializers.ModelSerializer):
             'comments',
             'created_at',
             'updated_at',
+            'latitude',
+            'longitude',
+            'distance_km',
         )
         read_only_fields = (
             'id',
@@ -60,6 +64,7 @@ class BoardPostSerializer(serializers.ModelSerializer):
             'recommendation_count',
             'comment_count',
             'comments',
+            'distance_km',
         )
 
     def get_invited(self, obj):
@@ -73,6 +78,12 @@ class BoardPostSerializer(serializers.ModelSerializer):
 
     def get_comment_count(self, obj):
         return getattr(obj, 'comment_count', 0) or 0
+
+    def get_distance_km(self, obj):
+        distance = getattr(obj, 'distance_km', None)
+        if distance is None:
+            return None
+        return round(distance, 2)
 
     def validate_invited_usernames(self, value):
         request = self.context.get('request')

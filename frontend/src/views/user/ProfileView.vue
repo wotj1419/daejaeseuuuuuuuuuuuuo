@@ -20,6 +20,7 @@ const tasteError = ref('')
 const similarUsers = ref([])
 const similarLoading = ref(false)
 const similarError = ref('')
+const similarInfo = ref('')
 
 async function loadProfile() {
   if (!authStore.isAuthenticated) {
@@ -79,19 +80,25 @@ async function loadSimilarUsers(k = 6) {
   if (!authStore.isAuthenticated) {
     similarUsers.value = []
     similarError.value = ''
+    similarInfo.value = '로그인하면 비슷한 취향의 사용자를 보여드릴게요.'
     return
   }
   similarLoading.value = true
   similarError.value = ''
+  similarInfo.value = ''
   try {
     const { data } = await accountsApi.getSimilarUsers({ k })
     similarUsers.value = data.results || []
     if (data.reason === 'not_enough_likes') {
-      similarError.value = '좋아요한 영화가 5개 미만이라 추천을 표시할 수 없어요.'
+      similarInfo.value = '좋아요한 영화가 5개 이상이어야 취향을 분석할 수 있어요.'
+      similarUsers.value = []
+    } else if (!similarUsers.value.length) {
+      similarInfo.value = '비슷한 취향을 가진 사용자를 아직 찾지 못했어요.'
     }
   } catch (error) {
     console.error('유사 취향 유저 불러오기 실패', error)
     similarError.value = '비슷한 취향 유저를 불러오지 못했습니다.'
+    similarInfo.value = ''
     similarUsers.value = []
   } finally {
     similarLoading.value = false
@@ -186,6 +193,20 @@ function clearProfileImage() {
 function formatDate(value) {
   if (!value) return ''
   return new Date(value).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function posterUrl(path) {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  return `https://image.tmdb.org/t/p/w500${path}`
+}
+
+function formatGenreText(genres) {
+  const names = (genres || [])
+    .map((genre) => genre?.name)
+    .filter(Boolean)
+    .slice(0, 5)
+  return names.join(', ')
 }
 </script>
 
@@ -310,29 +331,64 @@ function formatDate(value) {
 
       <div class="similar-block">
         <div class="similar-header-row">
-          <h4>??? ?? ??</h4>
-          <span class="mini-text" v-if="similarUsers.length">? {{ similarUsers.length }}?</span>
+          <h4>비슷한 취향을 가진 사용자</h4>
+          <span class="mini-text" v-if="similarUsers.length">총 {{ similarUsers.length }}명</span>
         </div>
-        <div v-if="similarLoading" class="info-message">??? ???? ?????</div>
+        <div v-if="similarLoading" class="info-message">비슷한 유저를 찾는 중입니다…</div>
         <div v-else-if="similarError" class="error-message">{{ similarError }}</div>
-        <div v-else-if="!similarUsers.length">
-          ?? ??? ??? ????.
-        </div>
-        <div v-else class="similar-mini-grid">
+        <div v-else-if="similarInfo" class="info-message">{{ similarInfo }}</div>
+        <div v-else class="similar-list">
           <button
             v-for="u in similarUsers"
-            :key="u.user.id"
+            :key="u.username"
             type="button"
-            class="similar-mini-card"
-            @click="router.push({ name: 'movieShare', query: { username: u.user.username } })"
+            class="similar-card"
+            @click="router.push({ name: 'movieShare', query: { username: u.username } })"
           >
-            <div class="mini-avatar">
-              {{ u.user.username?.charAt(0).toUpperCase() || 'U' }}
+            <div class="card-top-row">
+              <div class="similar-avatar" v-if="u.profile_image">
+                <img :src="u.profile_image" alt="profile" />
+              </div>
+              <div class="similar-avatar placeholder" v-else>
+                {{ (u.username || 'U').charAt(0).toUpperCase() }}
+              </div>
+              <div class="card-meta">
+                <div class="card-title-row">
+                  <strong>{{ u.username }}</strong>
+                  <span v-if="u.favorite_movie_name" class="mini-text">{{ u.favorite_movie_name }}</span>
+                </div>
+                <div class="card-score-row">
+                  <span class="score-pill">유사도 {{ Math.round((u.similarity || 0) * 100) }}%</span>
+                  <span class="info-pill">공통 좋아요 {{ u.common_likes_count || 0 }}개</span>
+                  <span class="info-pill">좋아요 {{ u.liked_movies_count || 0 }}개</span>
+                </div>
+                <p class="mini-text" v-if="u.bio">{{ u.bio }}</p>
+              </div>
             </div>
-            <div class="mini-body">
-              <strong>{{ u.user.username }}</strong>
-              <p class="mini-text">??? {{ Math.round((u.similarity || 0) * 100) }}% ? ?? {{ u.common_likes_count }}?</p>
-              <p class="mini-text" v-if="u.user.bio">{{ u.user.bio }}</p>
+            <p class="genre-line" v-if="u.top_genres?.length">주요 장르: {{ formatGenreText(u.top_genres) }}</p>
+            <p class="summary-text" v-if="u.taste_summary">{{ u.taste_summary }}</p>
+            <div v-if="u.sample_titles?.length" class="sample-chip-row">
+              <span v-for="title in u.sample_titles" :key="title" class="sample-chip">{{ title }}</span>
+            </div>
+            <div v-if="u.recommendations?.length" class="recommendations">
+              <p class="recommend-label">이 사용자가 좋아했지만 내가 아직 보지 않은 영화</p>
+              <div class="recommendation-row">
+                <article
+                  v-for="movie in u.recommendations"
+                  :key="movie.tmdb_id || movie.id"
+                  class="recommend-card"
+                >
+                  <div class="poster-wrapper">
+                    <img
+                      v-if="posterUrl(movie.poster_path)"
+                      :src="posterUrl(movie.poster_path)"
+                      :alt="movie.title"
+                    />
+                    <div v-else class="poster-placeholder">No Image</div>
+                  </div>
+                  <p>{{ movie.title }}</p>
+                </article>
+              </div>
             </div>
           </button>
         </div>
@@ -667,7 +723,7 @@ textarea {
   margin-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .similar-header-row {
@@ -676,35 +732,42 @@ textarea {
   justify-content: space-between;
 }
 
-.similar-mini-grid {
+.similar-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
 }
 
-.similar-mini-card {
+.similar-card {
   width: 100%;
-  text-align: left;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  padding: 12px;
-  color: #e7e7e7;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px;
+  color: #f7f7f7;
   display: flex;
-  gap: 12px;
-  align-items: center;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.similar-mini-card:hover {
+.similar-card:hover {
   border-color: #1db954;
   transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(13, 88, 48, 0.25);
 }
 
-.mini-avatar {
-  width: 40px;
-  height: 40px;
+.card-top-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.similar-avatar {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: linear-gradient(135deg, #1db954, #1ed760);
   color: #000;
@@ -712,13 +775,141 @@ textarea {
   align-items: center;
   justify-content: center;
   font-weight: 800;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
-.mini-body {
+.similar-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.similar-avatar.placeholder {
+  font-size: 22px;
+}
+
+.card-meta {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-title-row strong {
+  font-size: 1.2rem;
+}
+
+.card-score-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.score-pill,
+.info-pill {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(29, 185, 84, 0.15);
+  color: #8ff7d6;
+}
+
+.info-pill {
+  background: rgba(255, 255, 255, 0.08);
+  color: #b2d8c0;
+}
+
+.genre-line,
+.summary-text {
+  margin: 0;
+  color: #cfe2d0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.sample-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sample-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e9f5ea;
+  font-size: 0.85rem;
+}
+
+.recommendations {
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recommend-label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #9cc6b5;
+}
+
+.recommendation-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.recommend-card {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #f4f7f2;
+}
+
+.recommend-card p {
+  margin: 0;
+}
+
+.poster-wrapper {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #111;
+}
+
+.poster-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.poster-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 0.75rem;
 }
 
 button:disabled {

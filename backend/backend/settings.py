@@ -155,6 +155,10 @@ DEBUG = True # 개발 중에는 True, 배포 시에는 반드시 False로 변경
 
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
 GMS_KEY = os.getenv('GMS_KEY')
+NAVER_MAP_CLIENT_ID = os.getenv('NAVER_CLIENT_ID')
+NAVER_MAP_CLIENT_SECRET = os.getenv('NAVER_CLIENT_SECRET')
+KAKAO_REST_API_KEY = os.getenv('KAKAO_REST_API_KEY')
+KAKAO_MAP_APP_KEY = os.getenv('KAKAO_MAP_APP_KEY')
 
 AUTH_USER_MODEL = 'accounts.User'
 
