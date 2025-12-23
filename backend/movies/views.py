@@ -10,11 +10,14 @@ from .serializers import (
     MovieListSerializer,
     MovieDetailSerializer,
     MovieRecommendSerializer,
+    GenreSerializer,
 )
 
 
 class MovieListAPIView(APIView):
     def get(self, request):
+        genre_id = request.query_params.get('genre')
+
         # 먼저 DB에서 영화 가져오기
         movies = (
             Movie.objects
@@ -22,11 +25,15 @@ class MovieListAPIView(APIView):
                 avg_rating=Avg('reviews__rating'),
                 review_count=Count('reviews')
             )
-            .order_by('-popularity')
         )
+
+        if genre_id:
+            movies = movies.filter(genres__id=genre_id)
+
+        movies = movies.order_by('-popularity')
         
         # DB에 영화가 없으면 TMDB에서 인기 영화 가져오기
-        if not movies.exists():
+        if not movies.exists() and not genre_id:
             tmdb_movies = self.fetch_popular_movies_from_tmdb()
             return Response(tmdb_movies)
         
@@ -367,3 +374,9 @@ class PersonDetailAPIView(APIView):
                 "error": "TMDB API 호출 중 오류가 발생했습니다.",
                 "detail": str(e)
             }, status=500)
+
+class GenreListAPIView(APIView):
+    def get(self, request):
+        genres = Genre.objects.all()
+        serializer = GenreSerializer(genres, many=True)
+        return Response(serializer.data)

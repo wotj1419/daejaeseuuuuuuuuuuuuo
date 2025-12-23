@@ -40,4 +40,9 @@ export const moviesApi = {
   personDetail(personId) {
     return http.get(`/person/${personId}/`)
   },
+
+  // 장르 목록 API
+  genreList() {
+    return http.get('/genres/')
+  },
 }
