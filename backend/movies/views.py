@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg, Count
 from django.conf import settings
@@ -10,11 +11,15 @@ from .serializers import (
     MovieListSerializer,
     MovieDetailSerializer,
     MovieRecommendSerializer,
+    GenreSerializer,
 )
+import json
 
 
 class MovieListAPIView(APIView):
     def get(self, request):
+        genre_id = request.query_params.get('genre') 
+
         # 먼저 DB에서 영화 가져오기
         movies = (
             Movie.objects
@@ -22,11 +27,15 @@ class MovieListAPIView(APIView):
                 avg_rating=Avg('reviews__rating'),
                 review_count=Count('reviews')
             )
-            .order_by('-popularity')
         )
+
+        if genre_id:
+            movies = movies.filter(genres__id=genre_id)
+
+        movies = movies.order_by('-popularity')
         
         # DB에 영화가 없으면 TMDB에서 인기 영화 가져오기
-        if not movies.exists():
+        if not movies.exists() and not genre_id:
             tmdb_movies = self.fetch_popular_movies_from_tmdb()
             return Response(tmdb_movies)
         
@@ -279,3 +288,97 @@ class MovieTrailerAPIView(APIView):
                 "error": "TMDB API 호출 중 오류가 발생했습니다.",
                 "detail": str(e)
             }, status=500)
+
+class MovieCreditsAPIView(APIView):
+    def get(self, request, movie_id):
+        tmdb_id = movie_id
+        api_key = settings.TMDB_API_KEY
+        if not api_key:
+            return Response({"error": "TMDB API 키가 설정되지 않았습니다."}, status=500)
+
+        url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits"
+        params = {
+            "api_key": api_key,
+            "language": "ko-KR",
+        }
+
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            # 주요 출연진 정보만 추출 (상위 10명)
+            cast = []
+            for person in data.get("cast", [])[:12]:
+                cast.append({
+                    "id": person.get("id"),
+                    "name": person.get("name"),
+                    "character": person.get("character"),
+                    "profile_path": person.get("profile_path"),
+                })
+
+            return Response({
+                "cast": cast
+            })
+        except requests.exceptions.RequestException as e:
+            return Response({
+                "error": "TMDB API 호출 중 오류가 발생했습니다.",
+                "detail": str(e)
+            }, status=500)
+
+class PersonDetailAPIView(APIView):
+    def get(self, request, person_id):
+        api_key = settings.TMDB_API_KEY
+        if not api_key:
+            return Response({"error": "TMDB API 키가 설정되지 않았습니다."}, status=500)
+
+        # 1. 인물 기본 정보 가져오기
+        person_url = f"https://api.themoviedb.org/3/person/{person_id}"
+        # 2. 출연 영화 목록 가져오기
+        credits_url = f"https://api.themoviedb.org/3/person/{person_id}/movie_credits"
+        
+        params = {
+            "api_key": api_key,
+            "language": "ko-KR",
+        }
+
+        try:
+            # 인물 정보 요청
+            person_resp = requests.get(person_url, params=params, timeout=10)
+            person_resp.raise_for_status()
+            person_data = person_resp.json()
+
+            # 출연 영화 요청
+            credits_resp = requests.get(credits_url, params=params, timeout=10)
+            credits_resp.raise_for_status()
+            credits_data = credits_resp.json()
+
+            # 영화 목록 정렬 (인기순 상위 20개)
+            movies = sorted(
+                credits_data.get("cast", []),
+                key=lambda x: x.get("popularity", 0),
+                reverse=True
+            )[:20]
+
+            return Response({
+                "person": {
+                    "id": person_data.get("id"),
+                    "name": person_data.get("name"),
+                    "biography": person_data.get("biography"),
+                    "birthday": person_data.get("birthday"),
+                    "place_of_birth": person_data.get("place_of_birth"),
+                    "profile_path": person_data.get("profile_path"),
+                },
+                "movies": movies
+            })
+        except requests.exceptions.RequestException as e:
+            return Response({
+                "error": "TMDB API 호출 중 오류가 발생했습니다.",
+                "detail": str(e)
+            }, status=500)
+
+class GenreListAPIView(APIView):
+    def get(self, request):
+        genres = Genre.objects.all()
+        serializer = GenreSerializer(genres, many=True)
+        return Response(serializer.data)

@@ -289,7 +289,7 @@ onMounted(load)
 
 /* Edit Mode */
 .edit-mode.card {
-  background: #141414;
+  background: #000000;
   padding: 30px;
   border-radius: 12px;
   border: 1px solid #333;
@@ -341,7 +341,7 @@ onMounted(load)
 .edit-textarea {
   width: 100%;
   min-height: 200px;
-  background: #000;
+  background: #000000;
   border: 1px solid #333;
   border-radius: 8px;
   padding: 16px;

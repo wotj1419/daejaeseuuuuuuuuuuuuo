@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.conf import settings
 from movies.models import Movie
@@ -18,7 +19,9 @@ class Review(TimeStampedModel):
         related_name='reviews'
     )
     content = models.TextField()
-    rating = models.IntegerField()  # 1~5
+    rating = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)]
+    )  # 1~10
 
     class Meta:
         # 🔥 익명 리뷰 허용하므로 제거

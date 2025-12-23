@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { moviesApi } from '@/api/movies'
 import { favoritesApi } from '@/api/favorites'
 import { useAuthStore } from '@/stores/auth'
+import IntroOverlay from '@/components/common/IntroOverlay.vue'
 
 // Swiper 관련 임포트
 import { Swiper, SwiperSlide } from 'swiper/vue'
@@ -21,6 +22,13 @@ const searchResults = ref([])
 const totalResults = ref(0)
 const isAiMode = ref(false)
 const aiResult = ref('')
+
+const showIntro = ref(false)
+
+function finishIntro() {
+  showIntro.value = false
+  sessionStorage.setItem('intro_shown', 'true')
+}
 
 // 홈 히어로용 영화 + 예고편
 const heroMovies = ref([])
@@ -249,6 +257,10 @@ function goToMovieDetail(tmdbId) {
 }
 
 onMounted(() => {
+  // 이번 세션에서 인트로를 봤는지 확인
+  if (!sessionStorage.getItem('intro_shown')) {
+    showIntro.value = true
+  }
   fetchHeroMovies()
 })
 
@@ -259,6 +271,8 @@ onUnmounted(() => {
 
 <template>
   <div class="home-container">
+    <!-- AI Cinematic Intro Overlay -->
+    <IntroOverlay v-if="showIntro" @finish="finishIntro" />
     <!-- Hero Section with YouTube trailer background -->
     <section class="hero">
       <swiper

@@ -30,4 +30,24 @@ export const moviesApi = {
   trailer(movieId) {
     return http.get(`/movies/${movieId}/trailer/`)
   },
+
+  // 출연진 API
+  credits(movieId) {
+    return http.get(`/movies/${movieId}/credits/`)
+  },
+
+  // 인물 상세 API
+  personDetail(personId) {
+    return http.get(`/person/${personId}/`)
+  },
+
+  // 장르 목록 API
+  genreList() {
+    return http.get('/genres/')
+  },
+
+  // 인트로 영상 생성 API
+  introVideo(data = {}) {
+    return http.post('/intro-video/', data)
+  },
 }

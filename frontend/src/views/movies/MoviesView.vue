@@ -11,6 +11,8 @@ const loading = ref(false)
 const error = ref(null)
 const allMovies = ref([])
 const favoriteStatus = ref(new Map()) // tmdb_id -> boolean
+const allGenres = ref([])
+const selectedGenreId = ref(null)
 
 const q = ref('')
 
@@ -23,12 +25,22 @@ function posterUrl(poster_path) {
 
 const movies = computed(() => {
   const query = q.value.trim().toLowerCase()
-  if (!query) return allMovies.value
 
   return allMovies.value.filter((m) => {
     const title = (m.title || '').toLowerCase()
     const overview = (m.overview || '').toLowerCase()
-    return title.includes(query) || overview.includes(query)
+    
+    // 장르 필터링
+    const matchesGenre = !selectedGenreId.value || 
+      (m.genres && m.genres.some(g => {
+        const genreObj = allGenres.value.find(ag => ag.name === g)
+        return genreObj && genreObj.id === selectedGenreId.value
+      }))
+
+    // 검색어 필터링
+    const matchesQuery = !query || title.includes(query) || overview.includes(query)
+
+    return matchesQuery && matchesGenre
   })
 })
 
@@ -46,6 +58,23 @@ async function loadMovies() {
     error.value = '영화 목록을 불러오지 못했습니다.'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadGenres() {
+  try {
+    const { data } = await moviesApi.genreList()
+    allGenres.value = data
+  } catch (e) {
+    console.error('장르 목록 로드 실패:', e)
+  }
+}
+
+function selectGenre(genreId) {
+  if (selectedGenreId.value === genreId) {
+    selectedGenreId.value = null // 토글 해제
+  } else {
+    selectedGenreId.value = genreId
   }
 }
 
@@ -91,7 +120,10 @@ async function loadFavoriteStatuses() {
 }
 
 onMounted(async () => {
-  await loadMovies()
+  await Promise.all([
+    loadMovies(),
+    loadGenres()
+  ])
   await loadFavoriteStatuses()
 })
 </script>
@@ -112,6 +144,26 @@ onMounted(async () => {
           />
           <button @click="loadMovies" class="refresh-button">
             <span>⟳</span> 새로고침
+          </button>
+        </div>
+
+        <!-- Genre Selection Section -->
+        <div class="genre-container" v-if="allGenres.length">
+          <button 
+            class="genre-chip" 
+            :class="{ active: selectedGenreId === null }"
+            @click="selectedGenreId = null"
+          >
+            전체
+          </button>
+          <button 
+            v-for="genre in allGenres" 
+            :key="genre.id" 
+            class="genre-chip" 
+            :class="{ active: selectedGenreId === genre.id }"
+            @click="selectGenre(genre.id)"
+          >
+            {{ genre.name }}
           </button>
         </div>
         
@@ -211,8 +263,45 @@ onMounted(async () => {
 .page-subtitle {
   font-size: 18px;
   color: #888;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
   text-align: center;
+}
+
+/* Genre Chips */
+.genre-container {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.genre-chip {
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.genre-chip:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-color: #1DB954;
+}
+
+.genre-chip.active {
+  background: #1DB954;
+  color: #000;
+  border-color: #1DB954;
+  box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4);
 }
 
 /* Search Bar */

@@ -1,9 +1,15 @@
 from rest_framework import serializers
-from .models import Movie
+from .models import Movie, Genre
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ('id', 'name')
 
 class MovieListSerializer(serializers.ModelSerializer):
     avg_rating = serializers.FloatField(read_only=True)
     review_count = serializers.IntegerField(read_only=True)
+    genres = serializers.StringRelatedField(many=True)
 
     class Meta:
         model = Movie
@@ -17,6 +23,7 @@ class MovieListSerializer(serializers.ModelSerializer):
             'overview',
             'avg_rating',
             'review_count',
+            'genres',
         )
 
 
