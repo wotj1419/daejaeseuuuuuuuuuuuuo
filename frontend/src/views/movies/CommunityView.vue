@@ -268,7 +268,7 @@ onMounted(() => {
 }
 
 .review-card {
-  background: #141414;
+  background: #000000;
   border: 1px solid #282828;
   border-radius: 12px;
   padding: 24px;

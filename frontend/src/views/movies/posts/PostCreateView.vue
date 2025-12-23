@@ -13,6 +13,9 @@ const saving = ref(false)
 
 async function submit() {
   if (!content.value.trim()) return alert('내용을 입력해줘!')
+  if (rating.value < 1 || rating.value > 10) {
+    return alert('평점은 1점에서 10점 사이여야 해!')
+  }
   saving.value = true
   try {
     await reviewsApi.createByMovie(movieId.value, {
@@ -51,13 +54,9 @@ function cancel() {
         <div class="form-group">
           <label class="form-label">평점</label>
           <div class="rating-container">
-            <input 
-              v-model="rating" 
-              type="number" 
-              min="1" 
-              max="10" 
-              class="rating-input"
-            />
+            <select v-model="rating" class="rating-select">
+              <option v-for="n in 10" :key="n" :value="n">{{ n }}점</option>
+            </select>
             <span class="rating-display">/ 10</span>
             <div class="star-display">⭐ {{ rating }}</div>
           </div>
@@ -138,7 +137,7 @@ function cancel() {
   width: 100%;
   min-height: 200px;
   padding: 16px;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: #000000;
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   font-size: 16px;
@@ -166,20 +165,32 @@ function cancel() {
   gap: 16px;
 }
 
-.rating-input {
-  width: 100px;
+.rating-select {
+  width: 120px;
   padding: 14px;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: #000000;
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   font-size: 18px;
   color: #ffffff;
   text-align: center;
   font-weight: 700;
+  cursor: pointer;
   transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
 }
 
-.rating-input:focus {
+.rating-select option {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.rating-select:focus {
   outline: none;
   border-color: #1DB954;
   background-color: rgba(255, 255, 255, 0.08);
