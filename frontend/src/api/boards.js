@@ -4,8 +4,26 @@ export const boardsApi = {
   listFree() {
     return http.get('/boards/free/')
   },
+  detail(postId) {
+    return http.get(`/boards/free/${postId}/`)
+  },
   createFree(payload) {
     return http.post('/boards/free/', payload)
+  },
+  listComments(postId) {
+    return http.get(`/boards/free/${postId}/comments/`)
+  },
+  createComment(postId, payload) {
+    return http.post(`/boards/free/${postId}/comments/`, payload)
+  },
+  updateComment(commentId, payload) {
+    return http.patch(`/boards/free/comments/${commentId}/`, payload)
+  },
+  deleteComment(commentId) {
+    return http.delete(`/boards/free/comments/${commentId}/`)
+  },
+  recommend(postId) {
+    return http.post(`/boards/free/${postId}/recommend/`)
   },
   listFriends() {
     return http.get('/boards/friends/')

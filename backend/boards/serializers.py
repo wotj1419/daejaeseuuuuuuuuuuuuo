@@ -1,6 +1,19 @@
 from rest_framework import serializers
 from accounts.models import User
-from .models import BoardPost
+from .models import BoardPost, BoardPostComment
+
+
+class BoardCommentSerializer(serializers.ModelSerializer):
+    author_username = serializers.CharField(source='author.username', read_only=True)
+
+    class Meta:
+        model = BoardPostComment
+        fields = (
+            'id',
+            'author_username',
+            'content',
+            'created_at',
+        )
 
 
 class BoardPostSerializer(serializers.ModelSerializer):
@@ -13,6 +26,10 @@ class BoardPostSerializer(serializers.ModelSerializer):
         write_only=True,
     )
     invited = serializers.SerializerMethodField()
+    view_count = serializers.SerializerMethodField()
+    recommendation_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    comments = BoardCommentSerializer(many=True, read_only=True)
 
     class Meta:
         model = BoardPost
@@ -25,6 +42,10 @@ class BoardPostSerializer(serializers.ModelSerializer):
             'author_username',
             'invited',
             'invited_usernames',
+            'view_count',
+            'recommendation_count',
+            'comment_count',
+            'comments',
             'created_at',
             'updated_at',
         )
@@ -35,10 +56,23 @@ class BoardPostSerializer(serializers.ModelSerializer):
             'invited',
             'created_at',
             'updated_at',
+            'view_count',
+            'recommendation_count',
+            'comment_count',
+            'comments',
         )
 
     def get_invited(self, obj):
         return [user.username for user in obj.invited_users.all()]
+
+    def get_view_count(self, obj):
+        return getattr(obj, 'view_count', 0) or 0
+
+    def get_recommendation_count(self, obj):
+        return getattr(obj, 'recommendation_count', 0) or 0
+
+    def get_comment_count(self, obj):
+        return getattr(obj, 'comment_count', 0) or 0
 
     def validate_invited_usernames(self, value):
         request = self.context.get('request')

@@ -29,9 +29,32 @@ class BoardPost(TimeStampedModel):
         blank=True,
         related_name='board_invitations',
     )
+    view_count = models.PositiveIntegerField(default=0)
+    recommendation_count = models.PositiveIntegerField(default=0)
+    comment_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
         return f'{self.title} ({self.board_type})'
+
+
+class BoardPostComment(TimeStampedModel):
+    post = models.ForeignKey(
+        BoardPost,
+        on_delete=models.CASCADE,
+        related_name='comments',
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='board_comments',
+    )
+    content = models.TextField()
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Comment by {self.author} on {self.post}'

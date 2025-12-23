@@ -14,6 +14,7 @@ import MyFriendsView from '@/views/user/MyFriendsView.vue'
 import MovieShareView from '@/views/movies/MovieShareView.vue'
 import FreeBoardView from '@/views/boards/FreeBoardView.vue'
 import FreeBoardCreateView from '@/views/boards/FreeBoardCreateView.vue'
+import FreeBoardDetailView from '@/views/boards/FreeBoardDetailView.vue'
 import FriendBoardView from '@/views/boards/FriendBoardView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
@@ -48,6 +49,7 @@ const router = createRouter({
     { path: '/boards', redirect: { name: 'freeBoard' } },
     { path: '/boards/free', name: 'freeBoard', component: FreeBoardView },
     { path: '/boards/free/new', name: 'freeBoardCreate', component: FreeBoardCreateView },
+    { path: '/boards/free/:id', name: 'freeBoardDetail', component: FreeBoardDetailView, props: true },
     { path: '/boards/friend', name: 'friendBoard', component: FriendBoardView },
 
     // Auth
