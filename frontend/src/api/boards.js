@@ -46,7 +46,12 @@ export const boardsApi = {
   getMapConfig() {
     return http.get('/boards/map-config/')
   },
+<<<<<<< HEAD
   getMyPosts() {
     return http.get('/boards/my-posts/')
+=======
+  getShowtimes(params) {
+    return http.get('/boards/theaters/showtimes/', { params })
+>>>>>>> origin/main
   },
 }

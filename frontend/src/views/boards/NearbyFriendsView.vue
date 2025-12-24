@@ -20,6 +20,11 @@ const selectedBrand = ref('전체')
 const searchRadius = 10000 // meters
 const page = ref(1)
 const pageSize = 5
+const showtimesByKey = ref({})
+const showtimesLoading = ref({})
+const selectedMovieByKey = ref({})
+const selectedShowtimeKey = ref('')
+const bookingUrlByKey = ref({})
 
 const brands = [
   { label: '전체', query: '영화관' },
@@ -129,6 +134,10 @@ function placeMarkers(items) {
   }
 }
 
+function theaterKey(theater) {
+  return theater.id || theater.place_url || theater.place_name || `${theater.x}_${theater.y}`
+}
+
 function syncCenterFromMap() {
   if (!mapInstance.value || !kakaoMaps.value) return
   const c = mapInstance.value.getCenter()
@@ -137,6 +146,37 @@ function syncCenterFromMap() {
 
 function goToPage(newPage) {
   page.value = Math.min(totalPages.value, Math.max(1, newPage))
+}
+
+async function loadShowtimes(theater) {
+  const key = theaterKey(theater)
+  // toggle off if already open
+  if (selectedShowtimeKey.value === key) {
+    selectedShowtimeKey.value = ''
+    return
+  }
+  showtimesLoading.value = { ...showtimesLoading.value, [key]: true }
+  try {
+    if (!showtimesByKey.value[key]) {
+      const { data } = await boardsApi.getShowtimes({
+        title: theater.place_name,
+        brand: selectedBrand.value,
+        place_url: theater.place_url,
+      })
+      showtimesByKey.value = { ...showtimesByKey.value, [key]: data.movies || [] }
+      selectedMovieByKey.value = {
+        ...selectedMovieByKey.value,
+        [key]: data.movies?.[0]?.title || '',
+      }
+      bookingUrlByKey.value = { ...bookingUrlByKey.value, [key]: data.booking_url || theater.place_url || '' }
+    }
+    selectedShowtimeKey.value = key
+  } catch (err) {
+    console.error('Failed to load showtimes', err)
+    showtimesByKey.value = { ...showtimesByKey.value, [key]: [] }
+  } finally {
+    showtimesLoading.value = { ...showtimesLoading.value, [key]: false }
+  }
 }
 
 function searchTheaters(brand) {
@@ -243,15 +283,70 @@ onMounted(() => {
     </section>
 
     <section class="map-panel">
-      <div ref="mapContainer" class="map-container">
-        <span v-if="mapKeyError" class="map-placeholder">{{ mapKeyError }}</span>
-        <span v-else-if="!kakaoAppKey && mapKeyLoading" class="map-placeholder">
-          카카오 지도 키를 불러오는 중입니다...
-        </span>
-        <span v-else-if="!kakaoAppKey" class="map-placeholder">
-          카카오 지도 키가 없습니다. 백엔드 .env에 KAKAO_API_KEY, 프런트 .env에 VITE_KAKAO_API_KEY를
-          설정해주세요.
-        </span>
+      <div class="map-column">
+        <div ref="mapContainer" class="map-container">
+          <span v-if="mapKeyError" class="map-placeholder">{{ mapKeyError }}</span>
+          <span v-else-if="!kakaoAppKey && mapKeyLoading" class="map-placeholder">
+            카카오 지도 키를 불러오는 중입니다...
+          </span>
+          <span v-else-if="!kakaoAppKey" class="map-placeholder">
+            카카오 지도 키가 없습니다. 백엔드 .env에 KAKAO_API_KEY, 프런트 .env에 VITE_KAKAO_API_KEY를
+            설정해주세요.
+          </span>
+        </div>
+
+        <div
+          v-if="selectedShowtimeKey && showtimesByKey[selectedShowtimeKey]?.length"
+          class="showtimes-panel"
+        >
+          <header class="panel-header">
+            <div class="panel-title">
+              <strong>
+                {{
+                  theaters.find((t) => theaterKey(t) === selectedShowtimeKey)?.place_name ||
+                  '상영 시간'
+                }}
+              </strong>
+              <a
+                v-if="bookingUrlByKey[selectedShowtimeKey]"
+                :href="bookingUrlByKey[selectedShowtimeKey]"
+                class="booking-link"
+                target="_blank"
+                rel="noreferrer"
+              >
+                예매하기
+              </a>
+            </div>
+            <button type="button" class="close-btn" @click="selectedShowtimeKey = ''">닫기</button>
+          </header>
+          <div class="movie-chips">
+            <button
+              v-for="movie in showtimesByKey[selectedShowtimeKey]"
+              :key="movie.title"
+              type="button"
+              class="movie-chip"
+              :class="{ active: selectedMovieByKey[selectedShowtimeKey] === movie.title }"
+              @click="
+                selectedMovieByKey = {
+                  ...selectedMovieByKey,
+                  [selectedShowtimeKey]: movie.title,
+                }
+              "
+            >
+              {{ movie.title }}
+            </button>
+          </div>
+          <ul class="showtimes map-showtimes">
+            <li
+              v-for="slot in (showtimesByKey[selectedShowtimeKey]
+                .find((m) => m.title === selectedMovieByKey[selectedShowtimeKey])?.showtimes || [])"
+              :key="slot.time + slot.hall"
+            >
+              <span class="time">{{ slot.time }}</span>
+              <span class="hall">{{ slot.hall }}</span>
+            </li>
+          </ul>
+        </div>
       </div>
       <aside class="map-details">
         <div class="brand-links">
@@ -282,15 +377,52 @@ onMounted(() => {
             <p>{{ theater.category_name }}</p>
             <p class="meta">{{ theater.road_address_name || theater.address_name }}</p>
             <p class="meta">{{ theater.phone || '전화번호 없음' }}</p>
-            <a
-              v-if="theater.place_url"
-              class="theater-link"
-              :href="theater.place_url"
-              target="_blank"
-              rel="noreferrer"
+            <div class="theater-actions">
+              <a
+                v-if="theater.place_url"
+                class="theater-link"
+                :href="theater.place_url"
+                target="_blank"
+                rel="noreferrer"
+              >
+                자세히 보기
+              </a>
+              <button
+                type="button"
+                class="theater-link ghost"
+                :disabled="showtimesLoading[theaterKey(theater)]"
+                @click="loadShowtimes(theater)"
+              >
+                {{ showtimesLoading[theaterKey(theater)] ? '불러오는 중...' : '상영관 시간 보기' }}
+              </button>
+            </div>
+            <div
+              v-if="showtimesByKey[theaterKey(theater)]?.length"
+              class="showtimes-container"
             >
-              자세히 보기
-            </a>
+              <div class="movie-chips">
+                <button
+                  v-for="movie in showtimesByKey[theaterKey(theater)]"
+                  :key="movie.title"
+                  type="button"
+                  class="movie-chip"
+                  :class="{ active: selectedMovieByKey[theaterKey(theater)] === movie.title }"
+                  @click="selectedMovieByKey = { ...selectedMovieByKey, [theaterKey(theater)]: movie.title }"
+                >
+                  {{ movie.title }}
+                </button>
+              </div>
+              <ul class="showtimes">
+                <li
+                  v-for="slot in (showtimesByKey[theaterKey(theater)]
+                    .find((m) => m.title === selectedMovieByKey[theaterKey(theater)])?.showtimes || [])"
+                  :key="slot.time + slot.hall"
+                >
+                  <span class="time">{{ slot.time }}</span>
+                  <span class="hall">{{ slot.hall }}</span>
+                </li>
+              </ul>
+            </div>
           </article>
           <div v-if="totalPages > 1" class="pagination">
             <button type="button" @click="goToPage(page - 1)" :disabled="page === 1">이전</button>
@@ -365,8 +497,14 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.map-container {
+.map-column {
   flex: 1 1 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.map-container {
   min-height: 520px;
   border-radius: 24px;
   background: #0c0c0c;
@@ -384,6 +522,45 @@ onMounted(() => {
   color: #bbb;
   padding: 24px;
   text-align: center;
+}
+
+.showtimes-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.booking-link {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: #1ed760;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
 .map-details {
@@ -482,10 +659,93 @@ onMounted(() => {
 .theater-link {
   margin-top: 4px;
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: #1ed760;
   font-weight: 600;
   font-size: 0.86rem;
   text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.theater-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.theater-link.ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 6px 10px;
+  color: #dff5e5;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.showtimes {
+  list-style: none;
+  padding: 8px 0 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.showtimes-container {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 6px;
+}
+
+.movie-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.movie-chip {
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: #dff5e5;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.movie-chip.active {
+  background: linear-gradient(135deg, #1db954, #1ed760);
+  color: #000;
+  border-color: #1ed760;
+}
+
+.showtimes li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.86rem;
+  color: #dbece0;
+}
+
+.showtimes .time {
+  font-weight: 700;
+  color: #1ed760;
+}
+
+.showtimes .hall {
+  color: #9fb9ac;
+}
+
+.showtimes .movie {
+  color: #cfe7da;
+  flex: 1;
 }
 
 .pagination {
