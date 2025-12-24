@@ -164,9 +164,13 @@ class MapConfigView(APIView):
     """Returns public config needed by the client (e.g. Kakao Map key)."""
 
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []  # avoid auth errors when a stale token is sent
 
     def get(self, request):
-        return Response({'kakao_map_app_key': settings.KAKAO_MAP_APP_KEY})
+        return Response({
+            'kakao_api_key': settings.KAKAO_MAP_APP_KEY,
+            'kakao_map_app_key': settings.KAKAO_MAP_APP_KEY,
+        })
 
 
 class NearbyBoardPostsView(APIView):
@@ -219,6 +223,7 @@ class NearbyBoardPostsView(APIView):
 
 class NearbyTheatersView(APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []  # public endpoint; ignore stale/invalid tokens
 
     def get(self, request):
         lat = request.query_params.get('lat')

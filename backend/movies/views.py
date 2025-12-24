@@ -16,7 +16,12 @@ from .serializers import (
 import json
 
 
-class MovieListAPIView(APIView):
+class PublicAPIView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []  # public endpoints; ignore stale/invalid tokens
+
+
+class MovieListAPIView(PublicAPIView):
     def get(self, request):
         genre_id = request.query_params.get('genre') 
 
@@ -84,7 +89,7 @@ class MovieListAPIView(APIView):
 
 
 
-class MovieDetailAPIView(APIView):
+class MovieDetailAPIView(PublicAPIView):
     def get_movie_from_tmdb(self, tmdb_id):
         tmdb_api_key = settings.TMDB_API_KEY
         url = f"https://api.themoviedb.org/3/movie/{tmdb_id}"
@@ -164,7 +169,7 @@ class MovieDetailAPIView(APIView):
             return Response({'error': str(e)}, status=500)
 
 
-class MovieRecommendAPIView(APIView):
+class MovieRecommendAPIView(PublicAPIView):
     def get(self, request, movie_id):
         # movie_id는 이제 TMDB ID로 간주됨
         try:
@@ -186,7 +191,7 @@ class MovieRecommendAPIView(APIView):
         return Response(serializer.data)
 
 
-class MovieSearchAPIView(APIView):
+class MovieSearchAPIView(PublicAPIView):
     """TMDB API를 사용하여 영화 검색"""
     def get(self, request):
         query = request.query_params.get('q', '').strip()
@@ -241,7 +246,7 @@ class MovieSearchAPIView(APIView):
             }, status=500)
 
 
-class MovieTrailerAPIView(APIView):
+class MovieTrailerAPIView(PublicAPIView):
     def get(self, request, movie_id):
         # movie_id는 이제 TMDB ID
         # DB에 영화가 없을 수도 있으니(상세페이지 갔다가 바로 예고편 로딩 시), 예고편은 TMDB API 바로 호출 가능
@@ -289,7 +294,7 @@ class MovieTrailerAPIView(APIView):
                 "detail": str(e)
             }, status=500)
 
-class MovieCreditsAPIView(APIView):
+class MovieCreditsAPIView(PublicAPIView):
     def get(self, request, movie_id):
         tmdb_id = movie_id
         api_key = settings.TMDB_API_KEY
@@ -326,7 +331,7 @@ class MovieCreditsAPIView(APIView):
                 "detail": str(e)
             }, status=500)
 
-class PersonDetailAPIView(APIView):
+class PersonDetailAPIView(PublicAPIView):
     def get(self, request, person_id):
         api_key = settings.TMDB_API_KEY
         if not api_key:
@@ -377,7 +382,7 @@ class PersonDetailAPIView(APIView):
                 "detail": str(e)
             }, status=500)
 
-class GenreListAPIView(APIView):
+class GenreListAPIView(PublicAPIView):
     def get(self, request):
         genres = Genre.objects.all()
         serializer = GenreSerializer(genres, many=True)
