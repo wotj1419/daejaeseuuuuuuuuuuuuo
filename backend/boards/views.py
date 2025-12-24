@@ -27,7 +27,7 @@ class FreeBoardListCreateView(generics.ListCreateAPIView):
         serializer.save(author=self.request.user, board_type=BoardPost.BOARD_TYPE_FREE)
 
 
-class FreeBoardDetailView(generics.RetrieveAPIView):
+class FreeBoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BoardPostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -40,6 +40,16 @@ class FreeBoardDetailView(generics.RetrieveAPIView):
         instance.refresh_from_db(fields=['view_count'])
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        if serializer.instance.author != self.request.user:
+            raise PermissionDenied("작성자만 수정할 수 있습니다.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.author != self.request.user:
+            raise PermissionDenied("작성자만 삭제할 수 있습니다.")
+        instance.delete()
 
 
 class BoardCommentListCreateView(generics.ListCreateAPIView):

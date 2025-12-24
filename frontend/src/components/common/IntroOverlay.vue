@@ -3,24 +3,47 @@ import { onMounted, ref } from 'vue'
 
 const emit = defineEmits(['finish'])
 const fadeOut = ref(false)
+const videoRef = ref(null)
+
+function handleFinish() {
+  if (fadeOut.value) return
+  fadeOut.value = true
+  setTimeout(() => {
+    emit('finish')
+  }, 1000)
+}
+
+function skipIntro() {
+  handleFinish()
+}
 
 onMounted(() => {
-  // 5초 후 자동으로 페이드 아웃
+  // 비디오가 로드되지 않거나 중단될 경우를 대비한 세이프트 가드 (8초)
   setTimeout(() => {
-    fadeOut.value = true
-    setTimeout(() => {
-      emit('finish')
-    }, 1000)
-  }, 5000)
+    if (!fadeOut.value) {
+      handleFinish()
+    }
+  }, 8000)
 })
 </script>
 
 <template>
   <div class="intro-overlay" :class="{ 'fade-out': fadeOut }">
-    <div class="intro-content">
-      <h1 class="intro-logo">MovieMate</h1>
-      <p class="intro-tagline">Your Cinematic Journey Begins</p>
-    </div>
+    <video
+      ref="videoRef"
+      class="intro-video"
+      autoplay
+      muted
+      playsinline
+      @ended="handleFinish"
+    >
+      <source src="/videos/movie_intro.mp4" type="video/mp4" />
+    </video>
+    
+    <button class="skip-btn" @click="skipIntro">
+      Skip Intro
+      <span class="skip-icon">→</span>
+    </button>
   </div>
 </template>
 
@@ -32,24 +55,34 @@ onMounted(() => {
   width: 100vw;
   height: 100vh;
   background-color: #000;
-  background-image: url('/intro-base.png');
-  background-size: cover;
-  background-position: center;
   z-index: 9999;
   display: flex;
   justify-content: center;
   align-items: center;
   transition: opacity 1s ease-out;
-  animation: ken-burns 20s ease-in-out forwards;
+  overflow: hidden;
 }
 
 .intro-overlay.fade-out {
   opacity: 0;
+  pointer-events: none;
+}
+
+.intro-video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translate(-50%, -50%);
+  z-index: 1;
 }
 
 .intro-content {
   text-align: center;
   z-index: 2;
+  pointer-events: none;
   animation: fade-in-up 1.5s ease-out;
 }
 
@@ -60,10 +93,8 @@ onMounted(() => {
   margin-bottom: 20px;
   letter-spacing: 6px;
   text-shadow: 
-    0 0 40px rgba(29, 185, 84, 0.8),
-    0 0 80px rgba(29, 185, 84, 0.5),
-    0 0 120px rgba(0, 0, 0, 0.9);
-  animation: pulse-glow 3s infinite ease-in-out;
+    0 0 40px rgba(0, 0, 0, 0.9),
+    0 0 80px rgba(0, 0, 0, 0.5);
 }
 
 .intro-tagline {
@@ -73,36 +104,37 @@ onMounted(() => {
   text-transform: uppercase;
   opacity: 0.9;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-  animation: fade-in 2s ease-out 0.5s both;
 }
 
-@keyframes ken-burns {
-  0% { 
-    transform: scale(1);
-    filter: brightness(0.7);
-  }
-  100% { 
-    transform: scale(1.2) translate(2%, 2%);
-    filter: brightness(1);
-  }
+.skip-btn {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { 
-    opacity: 0.8; 
-    transform: scale(1);
-    text-shadow: 
-      0 0 30px rgba(29, 185, 84, 0.6),
-      0 0 60px rgba(29, 185, 84, 0.4);
-  }
-  50% { 
-    opacity: 1; 
-    transform: scale(1.05);
-    text-shadow: 
-      0 0 60px rgba(29, 185, 84, 1),
-      0 0 120px rgba(29, 185, 84, 0.6),
-      0 0 180px rgba(29, 185, 84, 0.3);
-  }
+.skip-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(5px);
+  border-color: #1DB954;
+}
+
+.skip-icon {
+  font-size: 18px;
 }
 
 @keyframes fade-in-up {
@@ -114,10 +146,5 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-@keyframes fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 0.9; }
 }
 </style>

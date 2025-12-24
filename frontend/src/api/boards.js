@@ -10,6 +10,12 @@ export const boardsApi = {
   createFree(payload) {
     return http.post('/boards/free/', payload)
   },
+  updatePost(id, payload) {
+    return http.patch(`/boards/free/${id}/`, payload)
+  },
+  deletePost(id) {
+    return http.delete(`/boards/free/${id}/`)
+  },
   listComments(postId) {
     return http.get(`/boards/free/${postId}/comments/`)
   },

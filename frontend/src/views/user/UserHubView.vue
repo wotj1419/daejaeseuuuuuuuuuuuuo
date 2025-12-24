@@ -160,6 +160,28 @@ async function removeMovie(tmdbId, event) {
   }
 }
 
+async function handleDeleteReview(reviewId) {
+  if (!confirm('정말로 이 리뷰를 삭제하시겠습니까?')) return
+  try {
+    await reviewsApi.remove(reviewId)
+    reviews.value = reviews.value.filter((r) => r.id !== reviewId)
+  } catch (error) {
+    console.error('리뷰 삭제 실패', error)
+    alert('리뷰 삭제 중 오류가 발생했습니다.')
+  }
+}
+
+async function handleDeleteBoardPost(postId) {
+  if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) return
+  try {
+    await boardsApi.deletePost(postId)
+    boardPosts.value = boardPosts.value.filter((p) => p.id !== postId)
+  } catch (error) {
+    console.error('게시글 삭제 실패', error)
+    alert('게시글 삭제 중 오류가 발생했습니다.')
+  }
+}
+
 async function saveProfile() {
   if (!isAuthenticated.value) {
     router.push({ name: 'login' })
@@ -375,7 +397,12 @@ const combinedPosts = computed(() => {
                     <h4 class="title-link small" @click="goToMovieDetail(review.movie_tmdb_id)">
                       {{ review.movie_title || '제목 없음' }}
                     </h4>
-                    <span class="badge mini">★ {{ review.rating ?? '-' }}</span>
+                    <div class="head-actions">
+                      <span class="badge mini">★ {{ review.rating ?? '-' }}</span>
+                      <button class="action-btn delete mini" @click.stop="handleDeleteReview(review.id)">
+                        삭제
+                      </button>
+                    </div>
                   </div>
                   <p class="muted tiny">
                     {{ review.created_at ? new Date(review.created_at).toLocaleDateString('ko-KR') : '' }}
@@ -401,7 +428,16 @@ const combinedPosts = computed(() => {
                     })">
                     {{ post.title || '제목 없음' }}
                   </h4>
-                  <span class="badge mini">{{ post.board_type === 'free' ? '자유' : '소통' }}</span>
+                  <div class="head-actions">
+                    <span class="badge mini">{{ post.board_type === 'free' ? '자유' : '소통' }}</span>
+                    <button
+                      v-if="post.board_type === 'free'"
+                      class="action-btn delete mini"
+                      @click.stop="handleDeleteBoardPost(post.id)"
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
                 <p class="muted tiny">
                   {{ post.created_at ? new Date(post.created_at).toLocaleDateString('ko-KR') : '' }}
@@ -1078,6 +1114,45 @@ const combinedPosts = computed(() => {
   border-radius: 10px;
   color: #ff9b9b;
   margin-bottom: 10px;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #999;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.02em;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.action-btn.delete {
+  color: rgba(255, 71, 87, 0.8);
+  border-color: rgba(255, 71, 87, 0.15);
+}
+
+.action-btn.delete:hover {
+  background: #ff4757;
+  border-color: #ff4757;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.25);
 }
 
 @media (max-width: 800px) {
