@@ -132,8 +132,8 @@ async function loadSimilarUsers() {
   similarError.value = ''
   similarInfo.value = ''
   try {
-    const { data } = await favoritesApi.getSimilarUsers()
-    similarUsers.value = data.results || []
+    const { data } = await favoritesApi.getSimilarUsers({ k: 3 })
+    similarUsers.value = (data.results || []).slice(0, 3)
     if (!similarUsers.value.length) {
       similarInfo.value = '내가 좋아하는 장르와 비슷한 사용자가 아직 없습니다.'
     }
@@ -185,7 +185,11 @@ async function toggleFollow() {
 }
 
 function formatSummary(user) {
-  const genres = Array.isArray(user.top_genres) ? user.top_genres.filter(Boolean) : []
+  const genres = Array.isArray(user.top_genres)
+    ? user.top_genres
+        .map((g) => (typeof g === 'string' ? g : g?.name))
+        .filter(Boolean)
+    : []
   const titles = Array.isArray(user.sample_titles) ? user.sample_titles.filter(Boolean) : []
   const parts = []
   if (genres.length) {
@@ -243,7 +247,7 @@ watch(isAuthenticated, (authed) => {
       </div>
     </section>
 
-    <section class="similar-section">
+    <section class="similar-section" v-if="!searchUsername.trim()">
       <div class="similar-header">
         <p class="section-label">취향 공유</p>
         <h3 class="section-title">나와 비슷한 좋아요 장르의 유저가 있어요.</h3>
@@ -289,6 +293,21 @@ watch(isAuthenticated, (authed) => {
                 🎬 {{ title }}
               </span>
               <span v-if="!u.sample_titles?.length" class="sample-pill muted">정보 없음</span>
+            </div>
+            <div v-if="u.recommendations?.length" class="recommendations-grid">
+              <div
+                v-for="movie in u.recommendations"
+                :key="movie.tmdb_id"
+                class="recommendation-poster"
+              >
+                <img
+                  v-if="movie.poster_path"
+                  :src="posterUrl(movie.poster_path)"
+                  :alt="movie.title"
+                  @click="goToMovieDetail(movie.tmdb_id)"
+                />
+                <div v-else class="poster-placeholder">{{ movie.title }}</div>
+              </div>
             </div>
             <p class="mini-text" v-if="u.bio">{{ u.bio }}</p>
           </article>
@@ -678,6 +697,50 @@ watch(isAuthenticated, (authed) => {
   background: rgba(255, 255, 255, 0.08);
   color: #e6f5ec;
   font-size: 0.9rem;
+}
+
+.sample-pill.muted {
+  color: #707070;
+}
+
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.recommendation-poster {
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #1a1a1a;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.recommendation-poster:hover {
+  transform: scale(1.05);
+}
+
+.recommendation-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.poster-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0a;
+  color: #666;
+  font-size: 0.75rem;
+  padding: 6px;
+  text-align: center;
+  word-break: break-word;
 }
 
 .sample-pill.muted {

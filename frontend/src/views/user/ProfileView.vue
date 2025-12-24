@@ -87,8 +87,8 @@ async function loadSimilarUsers(k = 6) {
   similarError.value = ''
   similarInfo.value = ''
   try {
-    const { data } = await accountsApi.getSimilarUsers({ k })
-    similarUsers.value = data.results || []
+    const { data } = await accountsApi.getSimilarUsers({ k: 3 })
+    similarUsers.value = (data.results || []).slice(0, 3)
     if (data.reason === 'not_enough_likes') {
       similarInfo.value = '좋아요한 영화가 5개 이상이어야 취향을 분석할 수 있어요.'
       similarUsers.value = []

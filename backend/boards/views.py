@@ -28,9 +28,9 @@ class FreeBoardListCreateView(generics.ListCreateAPIView):
         serializer.save(author=self.request.user, board_type=BoardPost.BOARD_TYPE_FREE)
 
 
-class FreeBoardDetailView(generics.RetrieveAPIView):
+class FreeBoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BoardPostSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         return BoardPost.objects.filter(board_type=BoardPost.BOARD_TYPE_FREE)
@@ -41,6 +41,16 @@ class FreeBoardDetailView(generics.RetrieveAPIView):
         instance.refresh_from_db(fields=['view_count'])
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        if serializer.instance.author != self.request.user:
+            raise PermissionDenied("작성자만 수정할 수 있습니다.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.author != self.request.user:
+            raise PermissionDenied("작성자만 삭제할 수 있습니다.")
+        instance.delete()
 
 
 class BoardCommentListCreateView(generics.ListCreateAPIView):
@@ -105,7 +115,50 @@ class FriendBoardListCreateView(generics.ListCreateAPIView):
         ).distinct()
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user, board_type=BoardPost.BOARD_TYPE_FRIEND)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        title = self.request.data.get('title')
+        invited_usernames = self.request.data.get('invited_usernames', [])
+        
+        # Get all participants from existing chat room with same title
+        all_participants = set()
+        if title:
+            existing_posts = BoardPost.objects.filter(
+                board_type=BoardPost.BOARD_TYPE_FRIEND,
+                title=title
+            ).filter(
+                Q(author=self.request.user) | Q(invited_users=self.request.user)
+            ).distinct()
+            
+            for post in existing_posts:
+                all_participants.add(post.author.username)
+                all_participants.update(post.invited_users.values_list('username', flat=True))
+        
+        # Add requested invitees
+        all_participants.update(invited_usernames)
+        # Remove current user from invited list
+        all_participants.discard(self.request.user.username)
+        
+        # Create post
+        post = serializer.save(author=self.request.user, board_type=BoardPost.BOARD_TYPE_FRIEND)
+        
+        # Set all participants as invited users
+        if all_participants:
+            invited_users = User.objects.filter(username__in=all_participants)
+            post.invited_users.set(invited_users)
+            post.save()
+
+
+
+
+class MyBoardPostsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        posts = BoardPost.objects.filter(author=request.user).order_by('-created_at')
+        serializer = BoardPostSerializer(posts, many=True)
+        return Response(serializer.data)
 
 
 def _haversine(lat1, lon1, lat2, lon2):

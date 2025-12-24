@@ -74,23 +74,3 @@ git switch 브랜치이름
 500: 서버 내부 코드 오류
 ## Taste embedding feature (AI ���� ���)
 
-- �߰� ������: `sentence-transformers`, `numpy` �� `backend/requirements.txt`�� ���ԵǾ� �ֽ��ϴ�. `pip install -r requirements.txt`�� �ٽ� ������ ��ġ�ϼ���.
-- �Ӻ��� ����: ���ƿ��� ��ȭ �Ӻ����� ������ ä����� �鿣�� ����ȯ�濡�� �Ʒ��� �����մϴ�.
-
-```
-cd backend
-python manage.py backfill_movie_embeddings  # --force �ɼ����� ����
-```
-
-- ���� ��� Ȯ��:
-
-```
-# ��ū�� �ִٰ� ���� (TOKEN ȯ�� ����)
-curl -H "Authorization: Token $TOKEN" http://127.0.0.1:8000/api/accounts/me/taste/
-```
-
-- ����� ���� ��õ (���� 10��):
-
-```
-curl -H "Authorization: Token $TOKEN" "http://127.0.0.1:8000/api/accounts/me/similar-users/?k=10"
-```

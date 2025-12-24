@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { accountsApi } from '@/api/accounts'
 import { favoritesApi } from '@/api/favorites'
+import { boardsApi } from '@/api/boards'
+import { reviewsApi } from '@/api/reviews'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -15,6 +17,7 @@ const loading = reactive({
   summary: false,
   movies: false,
   reviews: false,
+  boardPosts: false,
   follows: false,
   suggestions: false,
   savingProfile: false,
@@ -22,6 +25,7 @@ const loading = reactive({
 
 const movies = ref([])
 const reviews = ref([])
+const boardPosts = ref([])
 const followings = ref([])
 const followers = ref([])
 const suggestions = ref([])
@@ -88,6 +92,20 @@ async function loadReviews() {
   }
 }
 
+async function loadBoardPosts() {
+  if (!isAuthenticated.value || loading.boardPosts) return
+  loading.boardPosts = true
+  try {
+    const { data } = await boardsApi.getMyPosts()
+    boardPosts.value = data
+  } catch (error) {
+    console.error('내 게시글 불러오기 실패', error)
+  } finally {
+    loading.boardPosts = false
+  }
+}
+
+
 async function loadFollowData() {
   if (!isAuthenticated.value || loading.follows) return
   loading.follows = true
@@ -139,6 +157,28 @@ async function removeMovie(tmdbId, event) {
     movies.value = movies.value.filter((m) => m.tmdb_id !== tmdbId)
   } catch (error) {
     console.error('영화 제거 실패', error)
+  }
+}
+
+async function handleDeleteReview(reviewId) {
+  if (!confirm('정말로 이 리뷰를 삭제하시겠습니까?')) return
+  try {
+    await reviewsApi.remove(reviewId)
+    reviews.value = reviews.value.filter((r) => r.id !== reviewId)
+  } catch (error) {
+    console.error('리뷰 삭제 실패', error)
+    alert('리뷰 삭제 중 오류가 발생했습니다.')
+  }
+}
+
+async function handleDeleteBoardPost(postId) {
+  if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) return
+  try {
+    await boardsApi.deletePost(postId)
+    boardPosts.value = boardPosts.value.filter((p) => p.id !== postId)
+  } catch (error) {
+    console.error('게시글 삭제 실패', error)
+    alert('게시글 삭제 중 오류가 발생했습니다.')
   }
 }
 
@@ -201,12 +241,14 @@ watch(
       loadSummary()
       loadMovies()
       loadReviews()
+      loadBoardPosts()
       loadFollowData()
       loadSuggestions()
     } else {
       summary.value = null
       movies.value = []
       reviews.value = []
+      boardPosts.value = []
       followings.value = []
       followers.value = []
       suggestions.value = []
@@ -220,9 +262,18 @@ onMounted(() => {
     loadSummary()
     loadMovies()
     loadReviews()
+    loadBoardPosts()
     loadFollowData()
     loadSuggestions()
   }
+})
+
+const combinedPosts = computed(() => {
+  const combined = [
+    ...reviews.value.map((r) => ({ ...r, type: 'review' })),
+    ...boardPosts.value.map((p) => ({ ...p, type: 'post' })),
+  ]
+  return combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 })
 </script>
 
@@ -234,7 +285,7 @@ onMounted(() => {
         <span v-else>{{ displayName.charAt(0).toUpperCase() || 'U' }}</span>
       </div>
       <p class="eyebrow">My Page</p>
-      <h1>{{ displayName }}님의 큐레이션</h1>
+      <h1>{{ displayName }}님의 프로필</h1>
       <p class="muted hero-desc">
         좋아한 영화, 남긴 글, 그리고 연결된 사람들을 한눈에 관리하세요.
       </p>
@@ -321,47 +372,82 @@ onMounted(() => {
         <div>
           <p class="eyebrow">Writing</p>
           <h2>내 글</h2>
-          <p class="muted">작성한 리뷰와 글을 모았습니다.</p>
+          <p class="muted">작성한 리뷰와 게시글을 나누어 확인하세요.</p>
         </div>
-        <span class="chip">{{ reviews.length }}</span>
+        <span class="chip">{{ reviews.length + boardPosts.length }}</span>
       </header>
 
-      <div v-if="loading.reviews" class="loading">글을 불러오는 중...</div>
-      <div v-else-if="reviews.length" class="list">
-        <article v-for="review in reviews" :key="review.id" class="card review-card">
-          <div class="review-flex">
-            <div class="poster thumb" @click="goToMovieDetail(review.movie_tmdb_id)">
-              <img
-                v-if="review.movie_poster_path"
-                :src="posterUrl(review.movie_poster_path)"
-                alt="poster"
-              />
-              <div v-else class="no-poster">No Image</div>
-            </div>
-
-            <div class="review-main">
-              <div class="card-head">
-                <h3 class="title-link" @click="goToMovieDetail(review.movie_tmdb_id)">
-                  {{ review.movie_title || '제목 없음' }}
-                </h3>
-                <span class="badge">★ {{ review.rating ?? '-' }}</span>
+      <div v-if="loading.reviews || loading.boardPosts" class="loading">글을 불러오는 중...</div>
+      <div v-else-if="reviews.length || boardPosts.length" class="writing-columns">
+        <div class="writing-column">
+          <h3 class="column-title"><span class="type-badge review">리뷰</span> 영화 리뷰</h3>
+          <div v-if="reviews.length" class="list">
+            <article v-for="review in reviews" :key="'rev' + review.id" class="card review-card compact">
+              <div class="review-flex">
+                <div class="poster thumb mini" @click="goToMovieDetail(review.movie_tmdb_id)">
+                  <img
+                    v-if="review.movie_poster_path"
+                    :src="posterUrl(review.movie_poster_path)"
+                    alt="poster"
+                  />
+                  <div v-else class="no-poster">No</div>
+                </div>
+                <div class="review-main">
+                  <div class="card-head">
+                    <h4 class="title-link small" @click="goToMovieDetail(review.movie_tmdb_id)">
+                      {{ review.movie_title || '제목 없음' }}
+                    </h4>
+                    <div class="head-actions">
+                      <span class="badge mini">★ {{ review.rating ?? '-' }}</span>
+                      <button class="action-btn delete mini" @click.stop="handleDeleteReview(review.id)">
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                  <p class="muted tiny">
+                    {{ review.created_at ? new Date(review.created_at).toLocaleDateString('ko-KR') : '' }}
+                  </p>
+                  <p class="line-clamp-2 small">{{ review.content }}</p>
+                </div>
               </div>
-              <p class="muted small">
-                {{ review.created_at ? new Date(review.created_at).toLocaleDateString('ko-KR') : '' }}
-              </p>
-              <p class="line">{{ review.content }}</p>
-              <div class="card-actions">
-                <button class="ghost" @click="router.push({ name: 'postDetail', params: { id: review.id } })">
-                  리뷰 보기 
-                </button>
-                
-                <button class="primary ghost-outline" @click="goToMovieDetail(review.movie_tmdb_id)">
-                  영화 정보
-                </button>
-              </div>
-            </div>
+            </article>
           </div>
-        </article>
+          <p v-else class="empty-text">작성한 리뷰가 없습니다.</p>
+        </div>
+
+        <div class="writing-column">
+          <h3 class="column-title"><span class="type-badge post">게시글</span> 게시판 글</h3>
+          <div v-if="boardPosts.length" class="list">
+            <article v-for="post in boardPosts" :key="'post' + post.id" class="card review-card compact">
+              <div class="review-main">
+                <div class="card-head">
+                  <h4 class="title-link small" @click="router.push({ 
+                      name: post.board_type === 'free' ? 'freeBoardDetail' : 'friendBoard', 
+                      params: post.board_type === 'free' ? { id: post.id } : {},
+                      query: post.board_type === 'friend' ? { roomId: post.id } : {}
+                    })">
+                    {{ post.title || '제목 없음' }}
+                  </h4>
+                  <div class="head-actions">
+                    <span class="badge mini">{{ post.board_type === 'free' ? '자유' : '소통' }}</span>
+                    <button
+                      v-if="post.board_type === 'free'"
+                      class="action-btn delete mini"
+                      @click.stop="handleDeleteBoardPost(post.id)"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+                <p class="muted tiny">
+                  {{ post.created_at ? new Date(post.created_at).toLocaleDateString('ko-KR') : '' }}
+                </p>
+                <p class="line-clamp-2 small">{{ post.content }}</p>
+              </div>
+            </article>
+          </div>
+          <p v-else class="empty-text">작성한 게시글이 없습니다.</p>
+        </div>
       </div>
       <div v-else class="empty">
         <p>아직 작성한 글이 없어요.</p>
@@ -773,6 +859,101 @@ onMounted(() => {
   line-height: 1.5;
 }
 
+.type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.type-badge.review {
+  background: #1db954;
+  color: #000;
+}
+
+.type-badge.post {
+  background: #3d3d3d;
+  color: #fff;
+}
+
+.post-flex {
+  padding: 4px 0;
+}
+
+.writing-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.writing-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.column-title {
+  font-size: 18px;
+  border-bottom: 2px solid #1db954;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+.card.compact {
+  padding: 12px;
+}
+
+.poster.thumb.mini {
+  width: 60px;
+  height: 80px;
+}
+
+.title-link.small {
+  font-size: 15px;
+}
+
+.badge.mini {
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+.tiny {
+  font-size: 11px;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.empty-text {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.button.mini {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .writing-columns {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
 .follow-columns {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -933,6 +1114,45 @@ onMounted(() => {
   border-radius: 10px;
   color: #ff9b9b;
   margin-bottom: 10px;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #999;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.02em;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.action-btn.delete {
+  color: rgba(255, 71, 87, 0.8);
+  border-color: rgba(255, 71, 87, 0.15);
+}
+
+.action-btn.delete:hover {
+  background: #ff4757;
+  border-color: #ff4757;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.25);
 }
 
 @media (max-width: 800px) {

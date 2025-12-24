@@ -10,6 +10,12 @@ export const boardsApi = {
   createFree(payload) {
     return http.post('/boards/free/', payload)
   },
+  updatePost(id, payload) {
+    return http.patch(`/boards/free/${id}/`, payload)
+  },
+  deletePost(id) {
+    return http.delete(`/boards/free/${id}/`)
+  },
   listComments(postId) {
     return http.get(`/boards/free/${postId}/comments/`)
   },
@@ -40,7 +46,13 @@ export const boardsApi = {
   getMapConfig() {
     return http.get('/boards/map-config/')
   },
+
+    getMyPosts() {
+    return http.get('/boards/my-posts/')
+  },
+
   getShowtimes(params) {
     return http.get('/boards/theaters/showtimes/', { params })
   },
 }
+

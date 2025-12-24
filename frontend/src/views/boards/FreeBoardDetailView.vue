@@ -24,6 +24,15 @@ const editingCommentId = ref(null)
 const editingContent = ref('')
 const deleteTargetId = ref(null)
 const recommendStatus = ref('')
+const isEditingPost = ref(false)
+const postEditForm = ref({
+  title: '',
+  content: '',
+})
+const postDeleteModalOpen = ref(false)
+const isOwnPost = computed(() => {
+  return currentUsername.value && post.value && post.value.author_username === currentUsername.value
+})
 
 const formatDateTime = (iso) => {
   if (!iso) return ''
@@ -202,6 +211,60 @@ async function confirmDeleteComment() {
 function goBack() {
   router.back()
 }
+
+function startEditingPost() {
+  if (!post.value) return
+  postEditForm.value = {
+    title: post.value.title,
+    content: post.value.content,
+  }
+  isEditingPost.value = true
+}
+
+function cancelEditingPost() {
+  isEditingPost.value = false
+  editStatus.value = ''
+}
+
+async function submitPostEdit() {
+  if (!postId.value) return
+  if (!postEditForm.value.title.trim() || !postEditForm.value.content.trim()) {
+    editStatus.value = '제목과 내용을 모두 입력해주세요.'
+    return
+  }
+  try {
+    const { data } = await boardsApi.updatePost(postId.value, {
+      title: postEditForm.value.title.trim(),
+      content: postEditForm.value.content.trim(),
+    })
+    post.value = data
+    isEditingPost.value = false
+    editStatus.value = '게시글이 성공적으로 수정되었습니다.'
+  } catch (err) {
+    console.error('Post edit error', err)
+    editStatus.value = err.response?.data?.detail || '게시글 수정 중 오류가 발생했습니다.'
+  }
+}
+
+function promptDeletePost() {
+  postDeleteModalOpen.value = true
+}
+
+function closeDeleteModal() {
+  postDeleteModalOpen.value = false
+}
+
+async function confirmDeletePost() {
+  if (!postId.value) return
+  try {
+    await boardsApi.deletePost(postId.value)
+    router.replace({ name: 'freeBoard' })
+  } catch (err) {
+    console.error('Post delete error', err)
+    alert(err.response?.data?.detail || '게시글 삭제 중 오류가 발생했습니다.')
+    closeDeleteModal()
+  }
+}
 </script>
 
 <template>
@@ -211,8 +274,18 @@ function goBack() {
     <section v-else-if="post" class="detail-layout">
       <header class="detail-header">
         <div class="header-title">
+          <div v-if="isOwnPost && !isEditingPost" class="post-actions">
+            <button type="button" @click="startEditingPost">수정</button>
+            <button type="button" class="danger" @click="promptDeletePost">삭제</button>
+          </div>
           <p v-if="post.movie_title" class="movie-chip">영화 · {{ post.movie_title }}</p>
-          <h1>{{ post.title }}</h1>
+          <input
+            v-if="isEditingPost"
+            v-model="postEditForm.title"
+            class="edit-title-input"
+            placeholder="제목을 입력하세요."
+          />
+          <h1 v-else>{{ post.title }}</h1>
           <div class="meta-row">
             <span class="meta-author">{{ post.author_username }}</span>
             <span class="meta-divider">·</span>
@@ -248,7 +321,19 @@ function goBack() {
           <img v-if="posterUrl(posterPath)" :src="posterUrl(posterPath)" alt="poster" />
           <div v-else class="poster-placeholder">No Image</div>
         </div>
-        <article class="text-card">
+        <div v-if="isEditingPost" class="post-edit-body">
+          <textarea
+            v-model="postEditForm.content"
+            rows="15"
+            placeholder="내용을 입력하세요."
+          ></textarea>
+          <div class="edit-actions">
+            <button type="button" @click="submitPostEdit">저장</button>
+            <button type="button" class="ghost" @click="cancelEditingPost">취소</button>
+          </div>
+          <p v-if="editStatus" class="status edit-status">{{ editStatus }}</p>
+        </div>
+        <article v-else class="text-card">
           <p>{{ post.content }}</p>
         </article>
       </section>
@@ -323,6 +408,17 @@ function goBack() {
       </section>
 
       <button class="back-btn" type="button" @click="goBack">목록으로 돌아가기</button>
+
+      <div v-if="postDeleteModalOpen" class="delete-modal-backdrop">
+        <div class="delete-modal">
+          <p class="delete-title">게시글을 삭제하시겠습니까?</p>
+          <p class="delete-desc">삭제 후에는 복구할 수 없습니다.</p>
+          <div class="delete-actions">
+            <button type="button" class="ghost" @click="closeDeleteModal">취소</button>
+            <button type="button" class="danger-btn" @click="confirmDeletePost">삭제</button>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -438,6 +534,84 @@ function goBack() {
 
 .recommend-status {
   font-size: 12px;
+}
+
+.post-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.post-actions button {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  backdrop-filter: blur(8px);
+}
+
+.post-actions button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.post-actions button.danger {
+  background: rgba(255, 71, 87, 0.1);
+  border-color: rgba(255, 71, 87, 0.2);
+  color: #ff4757;
+}
+
+.post-actions button.danger:hover {
+  background: #ff4757;
+  border-color: #ff4757;
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+}
+
+.edit-title-input {
+  width: 100%;
+  background: #000;
+  border: 1px solid #1db954;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.post-edit-body textarea {
+  width: 100%;
+  background: #000;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  resize: vertical;
+  margin-bottom: 16px;
+}
+
+.post-edit-body textarea:focus {
+  border-color: #1db954;
+}
+
+.danger-btn {
+  background: #ff4444 !important;
+  color: #fff !important;
+}
+
+.status.error {
+  color: #ff4444;
 }
 
 .post-content {
@@ -698,6 +872,12 @@ function goBack() {
 
 .delete-status {
   color: #ff6b6b;
+}
+
+.delete-desc {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 10px;
 }
 
 .back-btn {

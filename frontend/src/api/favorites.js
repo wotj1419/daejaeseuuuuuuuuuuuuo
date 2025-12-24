@@ -17,8 +17,8 @@ export const favoritesApi = {
     return http.get('/accounts/my-reviews/')
   },
 
-  getSimilarUsers() {
-    return http.get('/accounts/favorites/similar-users/')
+  getSimilarUsers(params = {}) {
+    return http.get('/accounts/favorites/similar-users/', { params })
   },
 
   getUserFavorites(username) {

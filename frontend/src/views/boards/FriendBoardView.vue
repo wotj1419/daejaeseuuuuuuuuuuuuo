@@ -1,15 +1,17 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { boardsApi } from '@/api/boards'
 import { accountsApi } from '@/api/accounts'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const friendPosts = ref([])
 const friends = ref([])
+const currentUsername = ref('')
 const loading = ref(false)
 const creating = ref(false)
 const createStatus = ref('')
@@ -32,6 +34,16 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 const formatDate = (value) => {
   if (!value) return ''
   return new Date(value).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+async function loadCurrentUser() {
+  if (!isAuthenticated.value) return
+  try {
+    const { data } = await accountsApi.getProfile()
+    currentUsername.value = data.username || ''
+  } catch (error) {
+    console.error('프로필 로드 실패', error)
+  }
 }
 
 async function loadFriendPosts() {
@@ -189,10 +201,15 @@ async function sendMessage() {
       title: selectedChannel.value.title || `대화 ${selectedChannel.value.id}`,
       content: messageInput.value.trim(),
       movie_title: selectedChannel.value.movie_title || '',
+      invited_usernames: selectedChannel.value.invited || [],
     })
     messageInput.value = ''
     chatStatus.value = '메시지를 전송했습니다.'
     await loadFriendPosts()
+    const updatedChannel = channels.value.find((c) => c.title === selectedChannel.value.title)
+    if (updatedChannel) {
+      selectedChannel.value = updatedChannel
+    }
   } catch (error) {
     console.error(error)
     chatStatus.value = error.response?.data?.detail || '메시지 전송에 실패했습니다.'
@@ -201,16 +218,20 @@ async function sendMessage() {
   }
 }
 
+
 onMounted(() => {
+  loadCurrentUser()
   loadFriendPosts()
   loadFriends()
 })
 
 watch(isAuthenticated, (auth) => {
   if (auth) {
+    loadCurrentUser()
     loadFriendPosts()
     loadFriends()
   } else {
+    currentUsername.value = ''
     friendPosts.value = []
     friends.value = []
     form.invited_usernames = []
@@ -226,6 +247,8 @@ watch(filteredChannels, (list) => {
     selectedChannel.value = null
     return
   }
+  
+
   if (!selectedChannel.value || !list.find((channel) => channel.title === selectedChannel.value.title)) {
     selectedChannel.value = list[0]
   }
@@ -283,7 +306,7 @@ watch(messageInput, (value) => {
           <div v-if="filteredChannels.length" class="channel-list">
             <button
               v-for="channel in filteredChannels"
-              :key="channel.title || channel.id"
+              :key="channel.title || String(channel.id)"
               type="button"
               class="channel-item"
               :class="{ active: selectedChannel && selectedChannel.title === channel.title }"
@@ -315,9 +338,7 @@ watch(messageInput, (value) => {
               <p class="channel-label">채팅방</p>
               <h2>{{ selectedChannel.title ? selectedChannel.title : '제목 없음' }}</h2>
               <p class="channel-info">
-                {{ selectedChannel.invited.length
-                  ? selectedChannel.invited.join(', ')
-                  : '초대한 친구 없음' }}
+                {{ selectedChannel.invited.length ? selectedChannel.invited.join(', ') : '초대한 친구 없음' }}
               </p>
             </div>
             <div class="chat-meta">
@@ -336,7 +357,6 @@ watch(messageInput, (value) => {
               <div class="message-content">
                 <header>
                   <strong>{{ msg.author_username ? msg.author_username : '알 수 없음' }}</strong>
-                  <span>{{ formatDate(msg.created_at) }}</span>
                 </header>
                 <p>{{ msg.content }}</p>
               </div>
@@ -349,7 +369,7 @@ watch(messageInput, (value) => {
               rows="2"
               placeholder="메시지를 입력하세요."
               :disabled="!selectedChannel"
-            />
+            ></textarea>
             <div class="form-actions">
               <button type="submit" :disabled="sendingMessage || !selectedChannel">
                 {{ sendingMessage ? '전송 중...' : '전송' }}
@@ -370,15 +390,12 @@ watch(messageInput, (value) => {
           </div>
           <button class="icon-btn" type="button" @click="closeCreateModal">×</button>
         </header>
+        
         <label class="modal-label">채팅방 제목</label>
         <input v-model="form.title" type="text" placeholder="채팅방 제목을 입력하세요" />
 
         <label class="modal-label">친구 검색</label>
-        <input
-          v-model="friendSearch"
-          type="text"
-          placeholder="사용자 이름으로 검색"
-        />
+        <input v-model="friendSearch" type="text" placeholder="사용자 이름으로 검색" />
 
         <div v-if="filteredFriends.length" class="friends-checkboxes">
           <label
@@ -651,6 +668,79 @@ watch(messageInput, (value) => {
   color: #f1f1f1;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.message-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.message-card:hover .message-actions {
+  opacity: 1;
+}
+
+.text-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.text-btn:hover {
+  text-decoration: underline;
+  color: #1db954;
+}
+
+.text-btn.danger:hover {
+  color: #ff4444;
+}
+
+.message-edit-area {
+  margin-top: 8px;
+}
+
+.message-edit-area textarea {
+  width: 100%;
+  background: #000;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  justify-content: flex-end;
+}
+
+.mini-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: none;
+  background: #1db954;
+  color: #000;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mini-btn.ghost {
+  background: transparent;
+  border: 1px solid #333;
+  color: #ccc;
 }
 
 .message-form {
