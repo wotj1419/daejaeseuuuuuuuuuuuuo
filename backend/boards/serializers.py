@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Q
 from accounts.models import User
 from .models import BoardPost, BoardPostComment
 
@@ -91,10 +92,35 @@ class BoardPostSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             raise serializers.ValidationError('로그인이 필요합니다.')
 
+        # Check if this is a message in an existing chat room
+        title = self.initial_data.get('title')
+        if title:
+            existing_posts = BoardPost.objects.filter(
+                board_type=BoardPost.BOARD_TYPE_FRIEND,
+                title=title
+            ).filter(
+                Q(author=user) | Q(invited_users=user)
+            ).distinct()
+            
+            if existing_posts.exists():
+                # Get all participants from existing chat room
+                existing_participants = set()
+                for post in existing_posts:
+                    existing_participants.add(post.author.pk)
+                    existing_participants.update(post.invited_users.values_list('pk', flat=True))
+                
+                # Allow existing participants without following check
+                invited_pks = {u.pk for u in value}
+                if invited_pks.issubset(existing_participants):
+                    return value
+
+        # For new chat rooms, require following
         following_ids = set(user.followings.values_list('pk', flat=True))
         for invited_user in value:
             if invited_user.pk not in following_ids:
-                raise serializers.ValidationError(f'{invited_user.username}님은 팔로잉 중인 사용자만 초대할 수 있습니다.')
+                raise serializers.ValidationError(
+                    f'{invited_user.username}님은 팔로잉 중인 사용자만 초대할 수 있습니다.'
+                )
         return value
 
     def create(self, validated_data):
