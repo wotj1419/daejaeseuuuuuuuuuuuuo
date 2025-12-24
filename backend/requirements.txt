@@ -20,5 +20,6 @@ requests-oauthlib==2.0.0
 sqlparse==0.5.4
 tzdata==2025.3
 urllib3==2.6.2
-sentence-transformers==2.2.2
+huggingface-hub==0.36.0
+sentence-transformers==5.2.0
 numpy==1.26.4
