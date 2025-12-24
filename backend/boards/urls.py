@@ -10,6 +10,7 @@ from .views import (
     NearbyBoardPostsView,
     NearbyTheatersView,
 )
+from .views_showtimes_stub import ShowtimesView
 
 urlpatterns = [
     path('free/<int:pk>/', FreeBoardDetailView.as_view()),
@@ -21,4 +22,5 @@ urlpatterns = [
     path('map-config/', MapConfigView.as_view()),
     path('nearby/', NearbyBoardPostsView.as_view()),
     path('theaters/', NearbyTheatersView.as_view()),
+    path('theaters/showtimes/', ShowtimesView.as_view()),
 ]

@@ -40,4 +40,7 @@ export const boardsApi = {
   getMapConfig() {
     return http.get('/boards/map-config/')
   },
+  getShowtimes(params) {
+    return http.get('/boards/theaters/showtimes/', { params })
+  },
 }
