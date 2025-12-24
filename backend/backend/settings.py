@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     'accounts',
     'movies',
     'reviews',
-    'data',
     'boards',
 ]
 

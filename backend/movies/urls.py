@@ -4,7 +4,6 @@ from .views import (
     MovieDetailAPIView,
     MovieRecommendAPIView,
     MovieSearchAPIView,
-    MovieSearchAPIView,
     MovieTrailerAPIView,
     MovieCreditsAPIView,
     PersonDetailAPIView,
