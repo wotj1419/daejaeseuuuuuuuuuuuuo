@@ -1,0 +1,114 @@
+[frontend\src\views\boards\FreeBoardDetailView.vue:70] Mismatched tag: expected </div> (from line 65), found </textarea>
+[frontend\src\views\boards\FreeBoardDetailView.vue:88] Mismatched tag: expected </section> (from line 50), found </article>
+[frontend\src\views\boards\FreeBoardDetailView.vue:89] Mismatched tag: expected </section> (from line 5), found </div>
+[frontend\src\views\boards\FreeBoardDetailView.vue:100] Mismatched tag: expected </div> (from line 92), found </textarea>
+[frontend\src\views\boards\FreeBoardDetailView.vue:117] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\boards\FreeBoardDetailView.vue:120] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\boards\FreeBoardDetailView.vue:121] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\boards\FreeBoardView.vue:62] Mismatched tag: expected </div> (from line 41), found </article>
+[frontend\src\views\boards\FreeBoardView.vue:64] Mismatched tag: expected </section> (from line 11), found </div>
+[frontend\src\views\boards\FreeBoardView.vue:67] Mismatched tag: expected </div> (from line 2), found </section>
+[frontend\src\views\boards\FreeBoardView.vue:68] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\boards\FriendBoardView.vue:50] Mismatched tag: expected </div> (from line 34), found </button>
+[frontend\src\views\boards\FriendBoardView.vue:55] Mismatched tag: expected </aside> (from line 13), found </div>
+[frontend\src\views\boards\FriendBoardView.vue:56] Mismatched tag: expected </section> (from line 12), found </aside>
+[frontend\src\views\boards\FriendBoardView.vue:102] Mismatched tag: expected </form> (from line 96), found </textarea>
+[frontend\src\views\boards\FriendBoardView.vue:109] Mismatched tag: expected </div> (from line 63), found </form>
+[frontend\src\views\boards\FriendBoardView.vue:110] Mismatched tag: expected </article> (from line 58), found </div>
+[frontend\src\views\boards\FriendBoardView.vue:111] Mismatched tag: expected </div> (from line 2), found </article>
+[frontend\src\views\boards\FriendBoardView.vue:112] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\boards\FriendBoardView.vue:146] Mismatched tag: expected </div> (from line 133), found </label>
+[frontend\src\views\boards\FriendBoardView.vue:155] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\boards\FriendBoardView.vue:156] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\boards\NearbyFriendsView.vue:37] Mismatched tag: expected </div> (from line 28), found </button>
+[frontend\src\views\boards\NearbyFriendsView.vue:38] Mismatched tag: expected </aside> (from line 27), found </div>
+[frontend\src\views\boards\NearbyFriendsView.vue:58] Mismatched tag: expected </div> (from line 42), found </article>
+[frontend\src\views\boards\NearbyFriendsView.vue:60] Mismatched tag: expected </section> (from line 17), found </div>
+[frontend\src\views\boards\NearbyFriendsView.vue:87] Mismatched tag: expected </div> (from line 64), found </a>
+[frontend\src\views\boards\NearbyFriendsView.vue:88] Mismatched tag: expected </div> (from line 2), found </article>
+[frontend\src\views\boards\NearbyFriendsView.vue:89] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\boards\NearbyFriendsView.vue:91] Unexpected closing tag </aside> (no opening tag)
+[frontend\src\views\boards\NearbyFriendsView.vue:92] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\boards\NearbyFriendsView.vue:94] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\home\HomeView.vue:32] Mismatched tag: expected </div> (from line 25), found </iframe>
+[frontend\src\views\home\HomeView.vue:33] Mismatched tag: expected </swiper-slide> (from line 20), found </div>
+[frontend\src\views\home\HomeView.vue:53] Mismatched tag: expected </div> (from line 42), found </button>
+[frontend\src\views\home\HomeView.vue:55] Mismatched tag: expected </section> (from line 6), found </div>
+[frontend\src\views\home\HomeView.vue:56] Mismatched tag: expected </div> (from line 2), found </swiper-slide>
+[frontend\src\views\home\HomeView.vue:66] Unexpected closing tag </swiper> (no opening tag)
+[frontend\src\views\home\HomeView.vue:82] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\home\HomeView.vue:112] Mismatched tag: expected </div> (from line 103), found </button>
+[frontend\src\views\home\HomeView.vue:121] Mismatched tag: expected </div> (from line 102), found </button>
+[frontend\src\views\home\HomeView.vue:137] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\home\HomeView.vue:138] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\home\HomeView.vue:141] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\home\HomeView.vue:177] Mismatched tag: expected </div> (from line 167), found </button>
+[frontend\src\views\home\HomeView.vue:189] Mismatched tag: expected </section> (from line 143), found </div>
+[frontend\src\views\home\HomeView.vue:190] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\home\HomeView.vue:191] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\home\HomeView.vue:192] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\MovieDetailView.vue:45] Mismatched tag: expected </div> (from line 17), found </button>
+[frontend\src\views\movies\MovieDetailView.vue:127] Mismatched tag: expected </section> (from line 99), found </div>
+[frontend\src\views\movies\MovieDetailView.vue:128] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\movies\MovieDetailView.vue:129] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\MovieShareView.vue:67] Mismatched tag: expected </div> (from line 59), found </span>
+[frontend\src\views\movies\MovieShareView.vue:86] Mismatched tag: expected </section> (from line 23), found </article>
+[frontend\src\views\movies\MovieShareView.vue:88] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\MovieShareView.vue:89] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\movies\MovieShareView.vue:116] Mismatched tag: expected </div> (from line 92), found </button>
+[frontend\src\views\movies\MovieShareView.vue:139] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\MovieShareView.vue:175] Mismatched tag: expected </section> (from line 148), found </div>
+[frontend\src\views\movies\MovieShareView.vue:176] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\movies\MovieShareView.vue:177] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\MoviesView.vue:28] Mismatched tag: expected </div> (from line 21), found </button>
+[frontend\src\views\movies\MoviesView.vue:37] Mismatched tag: expected </div> (from line 5), found </button>
+[frontend\src\views\movies\MoviesView.vue:38] Mismatched tag: expected </section> (from line 4), found </div>
+[frontend\src\views\movies\MoviesView.vue:44] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\movies\MoviesView.vue:78] Mismatched tag: expected </div> (from line 66), found </button>
+[frontend\src\views\movies\MoviesView.vue:93] Mismatched tag: expected </section> (from line 58), found </div>
+[frontend\src\views\movies\MoviesView.vue:94] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\MoviesView.vue:95] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\movies\MoviesView.vue:102] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\PersonDetailView.vue:49] Mismatched tag: expected </section> (from line 27), found </div>
+[frontend\src\views\movies\PersonDetailView.vue:51] Mismatched tag: expected </div> (from line 8), found </section>
+[frontend\src\views\movies\PersonDetailView.vue:53] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\posts\PostCreateView.vue:13] Mismatched tag: expected </div> (from line 7), found </textarea>
+[frontend\src\views\movies\posts\PostCreateView.vue:34] Mismatched tag: expected </div> (from line 27), found </button>
+[frontend\src\views\movies\posts\PostCreateView.vue:41] Mismatched tag: expected </div> (from line 3), found </button>
+[frontend\src\views\movies\posts\PostCreateView.vue:43] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\posts\PostCreateView.vue:44] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\movies\posts\PostCreateView.vue:45] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\user\MyFriendsView.vue:89] Mismatched tag: expected </article> (from line 72), found </button>
+[frontend\src\views\user\MyFriendsView.vue:90] Mismatched tag: expected </div> (from line 71), found </article>
+[frontend\src\views\user\MyFriendsView.vue:91] Mismatched tag: expected </section> (from line 56), found </div>
+[frontend\src\views\user\MyFriendsView.vue:97] Mismatched tag: expected </div> (from line 2), found </section>
+[frontend\src\views\user\MyFriendsView.vue:98] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\user\ProfileView.vue:178] Mismatched tag: expected </div> (from line 163), found </article>
+[frontend\src\views\user\ProfileView.vue:181] Mismatched tag: expected </div> (from line 120), found </button>
+[frontend\src\views\user\ProfileView.vue:182] Mismatched tag: expected </section> (from line 97), found </div>
+[frontend\src\views\user\ProfileView.vue:184] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\user\ProfileView.vue:186] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\user\UserHubView.vue:35] Mismatched tag: expected </div> (from line 29), found </button>
+[frontend\src\views\user\UserHubView.vue:41] Mismatched tag: expected </div> (from line 2), found </button>
+[frontend\src\views\user\UserHubView.vue:47] Unexpected closing tag </button> (no opening tag)
+[frontend\src\views\user\UserHubView.vue:53] Unexpected closing tag </button> (no opening tag)
+[frontend\src\views\user\UserHubView.vue:54] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\user\UserHubView.vue:83] Mismatched tag: expected </div> (from line 67), found </article>
+[frontend\src\views\user\UserHubView.vue:84] Mismatched tag: expected </section> (from line 56), found </div>
+[frontend\src\views\user\UserHubView.vue:89] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\user\UserHubView.vue:146] Mismatched tag: expected </div> (from line 139), found </h4>
+[frontend\src\views\user\UserHubView.vue:153] Mismatched tag: expected </article> (from line 137), found </div>
+[frontend\src\views\user\UserHubView.vue:154] Mismatched tag: expected </div> (from line 136), found </article>
+[frontend\src\views\user\UserHubView.vue:158] Mismatched tag: expected </section> (from line 91), found </div>
+[frontend\src\views\user\UserHubView.vue:163] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\user\UserHubView.vue:231] Mismatched tag: expected </article> (from line 221), found </button>
+[frontend\src\views\user\UserHubView.vue:232] Mismatched tag: expected </div> (from line 220), found </article>
+[frontend\src\views\user\UserHubView.vue:235] Mismatched tag: expected </section> (from line 165), found </div>
+[frontend\src\views\user\UserHubView.vue:236] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\user\UserHubView.vue:273] Mismatched tag: expected </form> (from line 249), found </textarea>
+[frontend\src\views\user\UserHubView.vue:284] Mismatched tag: expected </section> (from line 238), found </form>
+[frontend\src\views\user\UserHubView.vue:285] Unexpected closing tag </section> (no opening tag)
+[frontend\src\views\user\UserHubView.vue:286] Unexpected closing tag </div> (no opening tag)
+[frontend\src\views\user\library\MyMoviesView.vue:42] Mismatched tag: expected </section> (from line 13), found </div>
+[frontend\src\views\user\library\MyMoviesView.vue:43] Mismatched tag: expected </div> (from line 2), found </section>
+[frontend\src\views\user\library\MyMoviesView.vue:53] Unexpected closing tag </div> (no opening tag)

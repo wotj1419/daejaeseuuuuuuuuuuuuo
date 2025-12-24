@@ -440,6 +440,59 @@ function goBack() {
   font-size: 12px;
 }
 
+.post-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.post-actions button {
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.post-actions button.danger:hover {
+  background: #ff4444;
+  color: #fff;
+  border-color: #ff4444;
+}
+
+.edit-title-input {
+  width: 100%;
+  background: #000;
+  border: 1px solid #1db954;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.post-edit-body textarea {
+  width: 100%;
+  background: #000;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  resize: vertical;
+  margin-bottom: 16px;
+}
+
+.post-edit-body textarea:focus {
+  border-color: #1db954;
+}
+
+.danger-btn {
+  background: #ff4444 !important;
+  color: #fff !important;
+}
+
+.status.error {
+  color: #ff4444;
+}
+
 .post-content {
   margin-top: 30px;
   display: grid;

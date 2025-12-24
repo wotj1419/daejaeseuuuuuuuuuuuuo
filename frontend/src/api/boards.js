@@ -40,4 +40,7 @@ export const boardsApi = {
   getMapConfig() {
     return http.get('/boards/map-config/')
   },
+  getMyPosts() {
+    return http.get('/boards/my-posts/')
+  },
 }
