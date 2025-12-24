@@ -22,6 +22,7 @@ cp .env.example .env
 # SECRET_KEY=...
 # TMDB_API_KEY=...
 # GMS_KEY=...
+# KAKAO_API_KEY=...
 
 # - SECRET_KEY 생성
 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
@@ -46,8 +47,17 @@ cd frontend
 # 2. 의존성 설치
 npm install
 
-# 3. 개발 서버 실행
+# 3. 환경 변수 설정 (.env 파일 생성)
+touch .env
+# .env.example 파일을 복사하여 .env 파일을 만들고 키를 입력하세요.
+cp .env.example .env
+# .env 내부 내용 수정:
+
+# KAKAO_API_KEY=...
+
+# 4. 개발 서버 실행
 npm run dev
+
 ```
 
 ---

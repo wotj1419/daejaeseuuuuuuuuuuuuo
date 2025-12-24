@@ -254,7 +254,7 @@ watch(messageInput, (value) => {
       <h1>소통방</h1>
       <p>초대한 친구들과 자신의 취향을 나눠보세요.</p>
       <div class="hero-extras">
-        <router-link class="ghost-btn" :to="{ name: 'nearbyBoard' }">친구 찾기</router-link>
+        <router-link class="ghost-btn" :to="{ name: 'nearbyBoard' }">영화관 찾기</router-link>
       </div>
     </section>
 
